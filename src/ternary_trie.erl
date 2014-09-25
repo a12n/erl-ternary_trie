@@ -24,7 +24,7 @@
 
 -type value() :: any().
 
--record(node, { key   :: key(),
+-record(node, { key   :: byte() | char(),
                 value :: value(),
                 left  :: #node{},
                 mid   :: #node{},
