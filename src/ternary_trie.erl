@@ -14,7 +14,7 @@
 
 %% API
 -export([fetch/2, fetch_keys/1, find/2, is_key/2, longest_prefix/2,
-         prefix_match/2, size/1, store/3]).
+         prefix_match/2, size/1, store/3, wildcard_match/2]).
 
 %%%===================================================================
 %%% Types
@@ -137,6 +137,15 @@ size(_TST) ->
 -spec store(key(), value(), ternary_trie()) -> ternary_trie().
 
 store(_Key, _Value, _TST) ->
+    error(undef).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec wildcard_match(key(), ternary_trie()) -> [key()].
+
+wildcard_match(_Key, _TST) ->
     error(undef).
 
 %%%===================================================================
