@@ -136,8 +136,25 @@ size(_TST) ->
 %%--------------------------------------------------------------------
 -spec store(key(), value(), ternary_trie()) -> ternary_trie().
 
-store(_Key, _Value, _TST) ->
-    error(undef).
+store(_NewKey = [Char], Value, _TST = undefined) ->
+    #node{ key = Char, value = Value };
+
+store(_NewKey = [Char | Rest], Value, _TST = undefined) ->
+    #node{ key = Char, mid = store(Rest, Value, undefined) };
+
+store(NewKey = [Char | _Rest], Value, Node = #node{ key = Key, left = Left })
+  when Char < Key ->
+    Node#node{ left = store(NewKey, Value, Left) };
+
+store(NewKey = [Char | _Rest], Value, Node = #node{ key = Key, right = Right })
+  when Char > Key ->
+    Node#node{ right = store(NewKey, Value, Right) };
+
+store(_NewKey = [_Char], Value, Node) ->
+    Node#node{ value = Value };
+
+store(_NewKey = [_Char | Rest], Value, Node = #node{ mid = Mid }) ->
+    Node#node{ mid = store(Rest, Value, Mid) }.
 
 %%--------------------------------------------------------------------
 %% @doc
