@@ -1,0 +1,7 @@
+%% -*- mode: erlang -*-
+
+{application, ternary_trie,
+ [{description, "Ternary search trie data structure"},
+  {vsn, "0.0.1"},
+  {modules, []},
+  {applications, [kernel, stdlib]}]}.
