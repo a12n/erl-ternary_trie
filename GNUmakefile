@@ -18,7 +18,7 @@ rebar:
 	chmod +x $@
 
 shell:
-	$(ERL) $(ERL_FLAGS)
+	$(ERL) $(ERL_FLAGS) -s ternary_trie new
 
 test: $(REBAR)
 	$(REBAR) eunit
