@@ -10,6 +10,9 @@
 -export_type([key/0, ternary_trie/0, t/0, value/0]).
 
 %% API
+-export([from_list/1, new/0]).
+
+%% API
 -export([fetch/2, fetch_keys/1, find/2, is_key/2, longest_prefix/2,
          prefix_match/2, size/1, store/3]).
 
@@ -30,6 +33,30 @@
 -opaque ternary_trie() :: (_Empty :: undefined) | (_Root :: #node{}).
 
 -type t() :: ternary_trie().
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec from_list([{key(), value()}]) -> ternary_trie().
+
+from_list(List) ->
+    lists:foldl(fun({Key, Value}, TST) ->
+                        store(Key, Value, TST)
+                end, new(), List).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec new() -> ternary_trie().
+
+new() ->
+    _Empty = undefined.
 
 %%%===================================================================
 %%% API
