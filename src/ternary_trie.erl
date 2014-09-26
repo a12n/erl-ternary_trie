@@ -10,7 +10,7 @@
 -export_type([key/0, ternary_trie/0, t/0, value/0]).
 
 %% API
--export([from_list/1, new/0]).
+-export([from_list/1, from_list/2, new/0]).
 
 %% API
 -export([fetch/2, fetch_keys/1, find/2, is_key/2, longest_prefix/2,
@@ -45,9 +45,16 @@
 -spec from_list([{key(), value()}]) -> ternary_trie().
 
 from_list(List) ->
-    lists:foldl(fun({Key, Value}, TST) ->
-                        store(Key, Value, TST)
-                end, new(), List).
+    from_list(List, new()).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec from_list([{key(), value()}], ternary_trie()) -> ternary_trie().
+
+from_list(List, Trie) ->
+    lists:foldl(fun({K, V}, T) -> store(K, V, T) end, Trie, List).
 
 %%--------------------------------------------------------------------
 %% @doc
