@@ -78,7 +78,7 @@ get(Key, Trie, Default) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec find(nonempty_string(), ternary_trie()) -> {ok, any()} | undefined.
+-spec find(nonempty_string(), ternary_trie()) -> {ok, any()} | error.
 
 find(_Key = "", _Trie) ->
     error(badarg);
@@ -88,7 +88,7 @@ find(Key, Trie) ->
         #node{ value = Value } when Value =/= undefined ->
             {ok, Value};
         _Other ->
-            undefined
+            error
     end.
 
 %%--------------------------------------------------------------------
