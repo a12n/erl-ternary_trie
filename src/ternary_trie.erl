@@ -7,7 +7,7 @@
 -module(ternary_trie).
 
 %% Types
--export_type([key/0, ternary_trie/0, t/0, value/0]).
+-export_type([ternary_trie/0, t/0]).
 
 %% API
 -export([get/2, insert/3, lookup/2, new/0]).
@@ -29,12 +29,8 @@
 %%% Types
 %%%===================================================================
 
--type key() :: binary() | string().
-
--type value() :: any().
-
 -record(node, { char  :: char(),
-                value :: value(),
+                value :: any(),
                 left  :: #node{},
                 mid   :: #node{},
                 right :: #node{} }).
@@ -51,7 +47,7 @@
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec get(key(), ternary_trie()) -> value().
+-spec get(nonempty_string(), ternary_trie()) -> value().
 
 get(Key, Trie) ->
     case lookup(Key, Trie) of
@@ -65,7 +61,7 @@ get(Key, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec insert(key(), value(), ternary_trie()) -> ternary_trie().
+-spec insert(nonempty_string(), any(), ternary_trie()) -> ternary_trie().
 
 insert(_Key = [C], Value, _Trie = undefined) ->
     #node{ char = C, value = Value };
@@ -91,7 +87,7 @@ insert(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec lookup(key(), ternary_trie()) -> {ok, value()} | undefined.
+-spec lookup(nonempty_string(), ternary_trie()) -> {ok, any()} | undefined.
 
 lookup(_Key = "", _Trie) ->
     error(badarg);
@@ -121,7 +117,7 @@ new() ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec from_keys([key()]) -> ternary_trie().
+-spec from_keys([nonempty_string()]) -> ternary_trie().
 
 from_keys(Keys) ->
     from_keys(Keys, new()).
@@ -130,7 +126,7 @@ from_keys(Keys) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec from_keys([key()], ternary_trie()) -> ternary_trie().
+-spec from_keys([nonempty_string()], ternary_trie()) -> ternary_trie().
 
 from_keys(Keys, Trie) ->
     lists:foldl(fun(K, T) -> insert(K, true, T) end, Trie, Keys).
@@ -139,7 +135,7 @@ from_keys(Keys, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec from_list([{key(), value()}]) -> ternary_trie().
+-spec from_list([{nonempty_string(), any()}]) -> ternary_trie().
 
 from_list(List) ->
     from_list(List, new()).
@@ -148,7 +144,7 @@ from_list(List) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec from_list([{key(), value()}], ternary_trie()) -> ternary_trie().
+-spec from_list([{nonempty_string(), any()}], ternary_trie()) -> ternary_trie().
 
 from_list(List, Trie) ->
     lists:foldl(fun({K, V}, T) -> insert(K, V, T) end, Trie, List).
@@ -157,7 +153,7 @@ from_list(List, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec keys(ternary_trie()) -> [key()].
+-spec keys(ternary_trie()) -> [nonempty_string()].
 
 keys(Trie) ->
     %% TODO
@@ -167,7 +163,7 @@ keys(Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec to_list(ternary_trie()) -> [{key(), value()}].
+-spec to_list(ternary_trie()) -> [{nonempty_string(), any()}].
 
 to_list(Trie) ->
     to_list(Trie, _RevPrefix = "", _List = []).
@@ -180,7 +176,8 @@ to_list(Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec nearest(key(), pos_integer(), ternary_trie()) -> [{key(), value()}].
+-spec nearest(nonempty_string(), pos_integer(), ternary_trie()) ->
+                     [{nonempty_string(), any()}].
 
 nearest(_Key, _Distance, _Trie) ->
     %% TODO
@@ -190,7 +187,8 @@ nearest(_Key, _Distance, _Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec nearest_keys(key(), pos_integer(), ternary_trie()) -> [key()].
+-spec nearest_keys(nonempty_string(), pos_integer(), ternary_trie()) ->
+                          [nonempty_string()].
 
 nearest_keys(Key, Distance, Trie) ->
     %% TODO
@@ -204,7 +202,7 @@ nearest_keys(Key, Distance, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec match(key(), ternary_trie()) -> [{key(), value()}].
+-spec match(nonempty_string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
 match(Pattern, Trie) ->
     to_list(Trie, _RevPrefix = "", Pattern, _List = []).
@@ -213,7 +211,7 @@ match(Pattern, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec match_keys(key(), ternary_trie()) -> [key()].
+-spec match_keys(nonempty_string(), ternary_trie()) -> [nonempty_string()].
 
 match_keys(Pattern, Trie) ->
     %% TODO
@@ -227,7 +225,7 @@ match_keys(Pattern, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec prefix(key(), ternary_trie()) -> [{key(), value()}].
+-spec prefix(string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
 prefix(Prefix, Trie) ->
     case lookup_node(Prefix, Trie) of
@@ -241,7 +239,7 @@ prefix(Prefix, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec prefix_keys(key(), ternary_trie()) -> [key()].
+-spec prefix_keys(string(), ternary_trie()) -> [nonempty_string()].
 
 prefix_keys(Prefix, Trie) ->
     %% TODO
@@ -255,7 +253,7 @@ prefix_keys(Prefix, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec lookup_node(key(), ternary_trie()) -> #node{} | undefined.
+-spec lookup_node(string(), ternary_trie()) -> #node{} | undefined.
 
 lookup_node(Key = [C | _Other], #node{ char = Char, left = Left })
   when C < Char ->
@@ -279,7 +277,8 @@ lookup_node(_Key, _Node = undefined) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec to_list(ternary_trie(), string(), [string()]) -> [string()].
+-spec to_list(ternary_trie(), string(), [{nonempty_string(), any()}]) ->
+                     [{nonempty_string(), any()}].
 
 to_list(_Node = undefined, _RevPrefix, List) ->
     List;
@@ -304,8 +303,9 @@ to_list(#node{ char = Char, value = Value,
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec to_list(ternary_trie(), string(), string(), [{key(), value()}]) ->
-                     [{key(), value()}].
+-spec to_list(ternary_trie(), string(), string(),
+              [{nonempty_string(), any()}]) ->
+                     [{nonempty_string(), any()}].
 
 to_list(_Node = undefined, _RevPrefix, _Pattern, List) ->
     List;
