@@ -10,7 +10,8 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, get/3, find/2, is_key/2, merge/2, new/0, put/3]).
+-export([get/2, get/3, find/2, fold/3, is_key/2, map/2, merge/2,
+         new/0, put/3]).
 
 %% API
 -export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
@@ -24,9 +25,6 @@
 
 %% API
 -export([prefix/2, prefix_keys/2]).
-
-%% API
--export([fold/3, map/2]).
 
 %%%===================================================================
 %%% Types
@@ -95,6 +93,16 @@ find(Key, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
+-spec fold(fun((nonempty_string(), any(), any()) -> any()),
+           any(), ternary_trie()) -> any().
+
+fold(Fun, Acc, Trie) ->
+    fold(Fun, Acc, Trie, _RevPrefix = "").
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
 -spec is_key(nonempty_string(), ternary_trie()) -> boolean().
 
 is_key(Key, Trie) ->
@@ -104,6 +112,16 @@ is_key(Key, Trie) ->
         _Other ->
             false
     end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec map(fun((nonempty_string(), any()) -> any()), ternary_trie()) ->
+                 ternary_trie().
+
+map(Fun, Trie) ->
+    map(Fun, Trie, _RevPrefix = "").
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -284,31 +302,6 @@ prefix(Prefix, Trie) ->
 prefix_keys(Prefix, Trie) ->
     %% TODO
     lists:map(fun({K, _V}) -> K end, prefix(Prefix, Trie)).
-
-
-%%%===================================================================
-%%% API
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec fold(fun((nonempty_string(), any(), any()) -> any()),
-           any(), ternary_trie()) -> any().
-
-fold(Fun, Acc, Trie) ->
-    fold(Fun, Acc, Trie, _RevPrefix = "").
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec map(fun((nonempty_string(), any()) -> any()), ternary_trie()) ->
-                 ternary_trie().
-
-map(Fun, Trie) ->
-    map(Fun, Trie, _RevPrefix = "").
 
 %%%===================================================================
 %%% Internal functions
