@@ -47,7 +47,7 @@
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec get(nonempty_string(), ternary_trie()) -> value().
+-spec get(nonempty_string(), ternary_trie()) -> any().
 
 get(Key, Trie) ->
     case lookup(Key, Trie) of
