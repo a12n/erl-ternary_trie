@@ -170,7 +170,8 @@ from_list(List, Trie) ->
 -spec keys(ternary_trie()) -> [key()].
 
 keys(Trie) ->
-    keys(Trie, _RevPrefix = "", _Keys = []).
+    %% TODO
+    lists:map(fun({K, _V}) -> K end, to_list(Trie)).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -178,9 +179,8 @@ keys(Trie) ->
 %%--------------------------------------------------------------------
 -spec to_list(ternary_trie()) -> [{key(), value()}].
 
-to_list(_Trie) ->
-    %% TODO
-    [].
+to_list(Trie) ->
+    to_list(Trie, _RevPrefix = "", _List = []).
 
 %%%===================================================================
 %%% API
@@ -263,21 +263,22 @@ prefix_keys(Key, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec keys(ternary_trie(), string(), [string()]) -> [string()].
+-spec to_list(ternary_trie(), string(), [string()]) -> [string()].
 
-keys(_Node = undefined, _RevPrefix, Keys) ->
-    Keys;
+to_list(_Node = undefined, _RevPrefix, List) ->
+    List;
 
-keys(#node{ char = Char, value = Value,
-            left = Left, mid = Mid, right = Right },
-     RevPrefix, Keys) ->
+to_list(#node{ char = Char, value = Value,
+               left = Left, mid = Mid, right = Right },
+        RevPrefix, List) ->
     RevPrefix1 = [Char | RevPrefix],
-    RightKeys = keys(Right, RevPrefix, Keys),
-    NextKeys = case Value of
-                   undefined ->
-                       RightKeys;
-                   _Other ->
-                       [lists:reverse(RevPrefix1) | RightKeys]
-               end,
-    MidKeys = keys(Mid, RevPrefix1, NextKeys),
-    keys(Left, RevPrefix, MidKeys).
+    List1 = to_list(Right, RevPrefix, List),
+    List2 = case Value of
+                undefined ->
+                    List1;
+                _Other ->
+                    Key = lists:reverse(RevPrefix1),
+                    [{Key, Value} | List1]
+            end,
+    List3 = to_list(Mid, RevPrefix1, List2),
+    to_list(Left, RevPrefix, List3).
