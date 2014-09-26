@@ -240,9 +240,13 @@ match_keys(Key, Trie) ->
 %%--------------------------------------------------------------------
 -spec prefix(key(), ternary_trie()) -> [{key(), value()}].
 
-prefix(_Key, _Trie) ->
-    %% TODO
-    [].
+prefix(Prefix, Trie) ->
+    case lookup_node(Prefix, Trie) of
+        undefined ->
+            [];
+        Node ->
+            to_list(Node, _RevPrefix = lists:reverse(Prefix), _List = [])
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -250,13 +254,36 @@ prefix(_Key, _Trie) ->
 %%--------------------------------------------------------------------
 -spec prefix_keys(key(), ternary_trie()) -> [key()].
 
-prefix_keys(Key, Trie) ->
+prefix_keys(Prefix, Trie) ->
     %% TODO
-    lists:map(fun({K, _V}) -> K end, prefix(Key, Trie)).
+    lists:map(fun({K, _V}) -> K end, prefix(Prefix, Trie)).
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec lookup_node(key(), ternary_trie()) -> #node{} | undefined.
+
+lookup_node(Key = [C | _Other], #node{ char = Char, left = Left })
+  when C < Char ->
+    lookup_node(Key, Left);
+
+lookup_node(Key = [C | _Other], #node{ char = Char, right = Right })
+  when C > Char ->
+    lookup_node(Key, Right);
+
+lookup_node(_Key = [_C | Other], #node{ mid = Mid }) ->
+    lookup_node(Other, Mid);
+
+lookup_node(_Key = "", Node) ->
+    Node;
+
+lookup_node(_Key, _Node = undefined) ->
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @priv
