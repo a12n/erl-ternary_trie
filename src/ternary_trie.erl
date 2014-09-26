@@ -91,8 +91,23 @@ fetch_keys(_TST) ->
 %%--------------------------------------------------------------------
 -spec find(key(), ternary_trie()) -> {ok, value()} | false.
 
-find(_Key, _TST) ->
-    error(undef).
+find(QKey = [Char | _Rest], Node = #node{ key = Key, left = Left })
+  when Char < Key ->
+    find(QKey, Left);
+
+find(QKey = [Char | _Rest], Node = #node{ key = Key, right = Right })
+  when Char > Key ->
+    find(QKey, Right);
+
+find(_QKey = [_Char], Node = #node{ value = Value })
+  when Value =/= undefined ->
+    {ok, Value};
+
+find(_QKey = [_Char | Rest], Node = #node{ mid = Mid }) ->
+    find(Rest, Mid);
+
+find(_QKey, _TST) ->
+    false.
 
 %%--------------------------------------------------------------------
 %% @doc
