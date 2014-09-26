@@ -367,32 +367,6 @@ map(Fun, Node = #node{ char = Char,
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec to_list(ternary_trie(), string(), [{nonempty_string(), any()}]) ->
-                     [{nonempty_string(), any()}].
-
-to_list(_Node = undefined, _RevPrefix, List) ->
-    List;
-
-to_list(#node{ char = Char, value = Value,
-               left = Left, mid = Mid, right = Right },
-        RevPrefix, List) ->
-    RevPrefix1 = [Char | RevPrefix],
-    List1 = to_list(Right, RevPrefix, List),
-    List2 = case Value of
-                undefined ->
-                    List1;
-                _Other ->
-                    Key = lists:reverse(RevPrefix1),
-                    [{Key, Value} | List1]
-            end,
-    List3 = to_list(Mid, RevPrefix1, List2),
-    to_list(Left, RevPrefix, List3).
-
-%%--------------------------------------------------------------------
-%% @priv
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
 -spec to_list(ternary_trie(), string(), string(),
               [{nonempty_string(), any()}]) ->
                      [{nonempty_string(), any()}].
