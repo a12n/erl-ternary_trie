@@ -50,7 +50,7 @@ get(Key, Trie) ->
     case find(Key, Trie) of
         {ok, Value} ->
             Value;
-        _Other ->
+        error ->
             error(badarg)
     end.
 
