@@ -122,8 +122,13 @@ find(_Key, _TST) ->
 %%--------------------------------------------------------------------
 -spec is_key(key(), ternary_trie()) -> boolean().
 
-is_key(_Key, _TST) ->
-    error(undef).
+is_key(Key, Trie) ->
+    case find(Key, Trie) of
+        {ok, _Value} ->
+            true;
+        _Other ->
+            false
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
