@@ -10,11 +10,8 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, get/3, find/2, fold/3, from_list/1, is_key/2, map/2,
-         merge/2, new/0, put/3]).
-
-%% API
--export([keys/1, to_list/1]).
+-export([get/2, get/3, find/2, fold/3, keys/1, from_list/1, is_key/2,
+         map/2, merge/2, new/0, put/3, to_list/1]).
 
 %% API
 -export([nearest/3, nearest_keys/3]).
@@ -125,6 +122,15 @@ is_key(Key, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
+-spec keys(ternary_trie()) -> [nonempty_string()].
+
+keys(Trie) ->
+    fold(fun(K, _V, Keys) -> [K | Keys] end, [], Trie).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
 -spec map(fun((nonempty_string(), any()) -> any()), ternary_trie()) ->
                  ternary_trie().
 
@@ -174,19 +180,6 @@ put(_Key = [_C], Value, Node) ->
 
 put(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
     Node#node{ mid = put(Other, Value, Mid) }.
-
-%%%===================================================================
-%%% API
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec keys(ternary_trie()) -> [nonempty_string()].
-
-keys(Trie) ->
-    fold(fun(K, _V, Keys) -> [K | Keys] end, [], Trie).
 
 %%--------------------------------------------------------------------
 %% @doc
