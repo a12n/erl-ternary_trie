@@ -261,7 +261,9 @@ prefix(Prefix, Trie) ->
         undefined ->
             [];
         Node ->
-            to_list(Node, _RevPrefix = lists:reverse(Prefix), _List = [])
+            fold(fun(K, V, List) ->
+                         [{K, V} | List]
+                 end, [], Node, lists:reverse(Prefix))
     end.
 
 %%--------------------------------------------------------------------
