@@ -25,6 +25,9 @@
 %% API
 -export([prefix/2, prefix_keys/2]).
 
+%% API
+-export([fold/3]).
+
 %%%===================================================================
 %%% Types
 %%%===================================================================
@@ -245,9 +248,50 @@ prefix_keys(Prefix, Trie) ->
     %% TODO
     lists:map(fun({K, _V}) -> K end, prefix(Prefix, Trie)).
 
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec fold(fun((nonempty_string(), any(), any()) -> any()),
+           any(), ternary_trie()) -> any().
+
+fold(Fun, Acc, Trie) ->
+    fold(Fun, Acc, Trie, _RevPrefix = "").
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec fold(fun((nonempty_string(), any(), any()) -> any()),
+           any(), ternary_trie(), string()) -> any().
+
+fold(_Fun, Acc, _Trie = undefined, _RevPrefix) ->
+    Acc;
+
+fold(Fun, Acc, _Node = #node{ char = Char,
+                              value = Value,
+                              left = Left,
+                              mid = Mid,
+                              right = Right }, RevPrefix) ->
+    RevPrefix1 = [Char | RevPrefix],
+    RightAcc = fold(Fun, Acc, Right, RevPrefix),
+    ValueAcc = case Value of
+                   undefined ->
+                       RightAcc;
+                   _Other ->
+                       Fun(lists:reverse(RevPrefix1), Value, RightAcc)
+               end,
+    MidAcc = fold(Fun, ValueAcc, Mid, RevPrefix1),
+    _LeftAcc = fold(Fun, MidAcc, Left, RevPrefix).
 
 %%--------------------------------------------------------------------
 %% @doc
