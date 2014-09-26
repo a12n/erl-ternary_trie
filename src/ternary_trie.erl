@@ -10,11 +10,20 @@
 -export_type([key/0, ternary_trie/0, t/0, value/0]).
 
 %% API
--export([from_list/1, from_list/2, new/0]).
+-export([get/2, insert/3, lookup/2, new/0]).
 
 %% API
--export([fetch/2, fetch_keys/1, find/2, is_key/2, longest_prefix/2,
-         prefix_match/2, size/1, store/3, wildcard_match/2]).
+-export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
+         to_list/1]).
+
+%% API
+-export([nearest/3, nearest_keys/3]).
+
+%% API
+-export([match/2, match_keys/2]).
+
+%% API
+-export([prefix/2, prefix_keys/2]).
 
 %%%===================================================================
 %%% Types
@@ -42,19 +51,68 @@
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec from_list([{key(), value()}]) -> ternary_trie().
+-spec get(key(), ternary_trie()) -> value().
 
-from_list(List) ->
-    from_list(List, new()).
+get(Key, Trie) ->
+    case lookup(Key, Trie) of
+        {ok, Value} ->
+            Value;
+        _Other ->
+            error(badarg)
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec from_list([{key(), value()}], ternary_trie()) -> ternary_trie().
+-spec insert(key(), value(), ternary_trie()) -> ternary_trie().
 
-from_list(List, Trie) ->
-    lists:foldl(fun({K, V}, T) -> store(K, V, T) end, Trie, List).
+insert(_Key = [C], Value, _Trie = undefined) ->
+    #node{ char = C, value = Value };
+
+insert(_Key = [C | Other], Value, _Trie = undefined) ->
+    #node{ char = C, mid = insert(Other, Value, undefined) };
+
+insert(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
+  when C < Char ->
+    Node#node{ left = insert(Key, Value, Left) };
+
+insert(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
+  when C > Char ->
+    Node#node{ right = insert(Key, Value, Right) };
+
+insert(_Key = [_C], Value, Node) ->
+    Node#node{ value = Value };
+
+insert(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
+    Node#node{ mid = insert(Other, Value, Mid) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec lookup(key(), ternary_trie()) -> {ok, value()} | undefined.
+
+lookup(Key = [C | _Other], #node{ char = Char, left = Left })
+  when C < Char ->
+    lookup(Key, Left);
+
+lookup(Key = [C | _Other], #node{ char = Char, right = Right })
+  when C > Char ->
+    lookup(Key, Right);
+
+lookup(_Key = [_C], #node{ value = Value })
+  when Value =/= undefined ->
+    {ok, Value};
+
+lookup(_Key = [_C | Other], #node{ mid = Mid }) ->
+    lookup(Other, Mid);
+
+lookup(_Key = "", _TST) ->
+    error(badarg);
+
+lookup(_Key, _TST) ->
+    undefined.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -73,124 +131,128 @@ new() ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec fetch(key(), ternary_trie()) -> value().
+-spec from_keys([key()]) -> ternary_trie().
 
-fetch(Key, TST) ->
-    case find(Key, TST) of
-        {ok, Value} ->
-            Value;
-        _Other ->
-            error(badarg)
-    end.
+from_keys(Keys) ->
+    from_keys(Keys, new()).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec fetch_keys(ternary_trie()) -> [key()].
+-spec from_keys([key()], ternary_trie()) -> ternary_trie().
 
-fetch_keys(Trie) ->
-    fetch_keys(Trie, "", []).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec find(key(), ternary_trie()) -> {ok, value()} | false.
-
-find(Key = [C | _Other], Node = #node{ char = Char, left = Left })
-  when C < Char ->
-    find(Key, Left);
-
-find(Key = [C | _Other], Node = #node{ char = Char, right = Right })
-  when C > Char ->
-    find(Key, Right);
-
-find(_Key = [_C], Node = #node{ value = Value })
-  when Value =/= undefined ->
-    {ok, Value};
-
-find(_Key = [_C | Other], Node = #node{ mid = Mid }) ->
-    find(Other, Mid);
-
-find(_Key, _TST) ->
-    false.
+from_keys(Keys, Trie) ->
+    lists:foldl(fun(K, T) -> insert(K, true, T) end, Trie, Keys).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec is_key(key(), ternary_trie()) -> boolean().
+-spec from_list([{key(), value()}]) -> ternary_trie().
 
-is_key(Key, Trie) ->
-    case find(Key, Trie) of
-        {ok, _Value} ->
-            true;
-        _Other ->
-            false
-    end.
+from_list(List) ->
+    from_list(List, new()).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec longest_prefix(key(), ternary_trie()) -> {ok, key()} | false.
+-spec from_list([{key(), value()}], ternary_trie()) -> ternary_trie().
 
-longest_prefix(_Key, _TST) ->
-    error(undef).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec prefix_match(key(), ternary_trie()) -> [key()].
-
-prefix_match(_Key, _TST) ->
-    error(undef).
+from_list(List, Trie) ->
+    lists:foldl(fun({K, V}, T) -> insert(K, V, T) end, Trie, List).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec size(ternary_trie()) -> non_neg_integer().
+-spec keys(ternary_trie()) -> [key()].
 
-size(_TST) ->
-    error(undef).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec store(key(), value(), ternary_trie()) -> ternary_trie().
-
-store(_Key = [C], Value, _Trie = undefined) ->
-    #node{ char = C, value = Value };
-
-store(_Key = [C | Other], Value, _Trie = undefined) ->
-    #node{ char = C, mid = store(Other, Value, undefined) };
-
-store(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
-  when C < Char ->
-    Node#node{ left = store(Key, Value, Left) };
-
-store(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
-  when C > Char ->
-    Node#node{ right = store(Key, Value, Right) };
-
-store(_Key = [_C], Value, Node) ->
-    Node#node{ value = Value };
-
-store(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
-    Node#node{ mid = store(Other, Value, Mid) }.
+keys(Trie) ->
+    keys(Trie, _RevPrefix = "", _Keys = []).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec wildcard_match(key(), ternary_trie()) -> [key()].
+-spec to_list(ternary_trie()) -> [{key(), value()}].
 
-wildcard_match(_Key, _TST) ->
-    error(undef).
+to_list(_Trie) ->
+    %% TODO
+    [].
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec nearest(key(), pos_integer(), ternary_trie()) -> [{key(), value()}].
+
+nearest(_Key, _Distance, _Trie) ->
+    %% TODO
+    [].
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec nearest_keys(key(), pos_integer(), ternary_trie()) -> [key()].
+
+nearest_keys(Key, Distance, Trie) ->
+    %% TODO
+    lists:map(fun({K, _V}) -> K end, nearest(Key, Distance, Trie)).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec match(key(), ternary_trie()) -> [{key(), value()}].
+
+match(_Key, _Trie) ->
+    %% TODO
+    [].
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec match_keys(key(), ternary_trie()) -> [key()].
+
+match_keys(Key, Trie) ->
+    %% TODO
+    lists:map(fun({K, _V}) -> K end, match(Key, Trie)).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec prefix(key(), ternary_trie()) -> [{key(), value()}].
+
+prefix(_Key, _Trie) ->
+    %% TODO
+    [].
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec prefix_keys(key(), ternary_trie()) -> [key()].
+
+prefix_keys(Key, Trie) ->
+    %% TODO
+    lists:map(fun({K, _V}) -> K end, prefix(Key, Trie)).
 
 %%%===================================================================
 %%% Internal functions
@@ -201,20 +263,21 @@ wildcard_match(_Key, _TST) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec fetch_keys(ternary_trie(), string(), [string()]) -> [string()].
+-spec keys(ternary_trie(), string(), [string()]) -> [string()].
 
-fetch_keys(_Node = undefined, _RevPrefix, Keys) ->
+keys(_Node = undefined, _RevPrefix, Keys) ->
     Keys;
 
-fetch_keys(#node{ char = Char, value = Value,
-                  left = Left, mid = Mid, right = Right },
-           RevPrefix, Keys) ->
-    Keys1 = fetch_keys(Right, RevPrefix, Keys),
-    Keys2 = case Value of
-                undefined ->
-                    Keys1;
-                _Other ->
-                    [lists:reverse([Char | RevPrefix]) | Keys1]
-            end,
-    Keys3 = fetch_keys(Mid, [Char | RevPrefix], Keys2),
-    _Keys4 = fetch_keys(Left, RevPrefix, Keys3).
+keys(#node{ char = Char, value = Value,
+            left = Left, mid = Mid, right = Right },
+     RevPrefix, Keys) ->
+    RevPrefix1 = [Char | RevPrefix],
+    RightKeys = keys(Right, RevPrefix, Keys),
+    NextKeys = case Value of
+                   undefined ->
+                       RightKeys;
+                   _Other ->
+                       [lists:reverse(RevPrefix1) | RightKeys]
+               end,
+    MidKeys = keys(Mid, RevPrefix1, NextKeys),
+    keys(Left, RevPrefix, MidKeys).
