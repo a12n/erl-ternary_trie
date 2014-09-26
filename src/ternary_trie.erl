@@ -24,7 +24,7 @@
 
 -type value() :: any().
 
--record(node, { key   :: byte() | char(),
+-record(node, { char  :: char(),
                 value :: value(),
                 left  :: #node{},
                 mid   :: #node{},
@@ -98,22 +98,22 @@ fetch_keys(Trie) ->
 %%--------------------------------------------------------------------
 -spec find(key(), ternary_trie()) -> {ok, value()} | false.
 
-find(QKey = [Char | _Rest], Node = #node{ key = Key, left = Left })
-  when Char < Key ->
-    find(QKey, Left);
+find(Key = [C | _Other], Node = #node{ char = Char, left = Left })
+  when C < Char ->
+    find(Key, Left);
 
-find(QKey = [Char | _Rest], Node = #node{ key = Key, right = Right })
-  when Char > Key ->
-    find(QKey, Right);
+find(Key = [C | _Other], Node = #node{ char = Char, right = Right })
+  when C > Char ->
+    find(Key, Right);
 
-find(_QKey = [_Char], Node = #node{ value = Value })
+find(_Key = [_C], Node = #node{ value = Value })
   when Value =/= undefined ->
     {ok, Value};
 
-find(_QKey = [_Char | Rest], Node = #node{ mid = Mid }) ->
-    find(Rest, Mid);
+find(_Key = [_C | Other], Node = #node{ mid = Mid }) ->
+    find(Other, Mid);
 
-find(_QKey, _TST) ->
+find(_Key, _TST) ->
     false.
 
 %%--------------------------------------------------------------------
@@ -158,50 +158,25 @@ size(_TST) ->
 %%--------------------------------------------------------------------
 -spec store(key(), value(), ternary_trie()) -> ternary_trie().
 
-store(_NewKey = [Char], Value, _TST = undefined) ->
-    #node{ key = Char, value = Value };
+store(_Key = [C], Value, _Trie = undefined) ->
+    #node{ char = C, value = Value };
 
-store(_NewKey = <<Byte>>, Value, _TST = undefined) ->
-    #node{ key = Byte, value = Value };
+store(_Key = [C | Other], Value, _Trie = undefined) ->
+    #node{ char = C, mid = store(Other, Value, undefined) };
 
+store(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
+  when C < Char ->
+    Node#node{ left = store(Key, Value, Left) };
 
-store(_NewKey = [Char | Rest], Value, _TST = undefined) ->
-    #node{ key = Char, mid = store(Rest, Value, undefined) };
+store(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
+  when C > Char ->
+    Node#node{ right = store(Key, Value, Right) };
 
-store(_NewKey = <<Byte, Rest/bytes>>, Value, _TST = undefined) ->
-    #node{ key = Byte, mid = store(Rest, Value, undefined) };
-
-
-store(NewKey = [Char | _Rest], Value, Node = #node{ key = Key, left = Left })
-  when Char < Key ->
-    Node#node{ left = store(NewKey, Value, Left) };
-
-store(NewKey = <<Byte, _Rest/bytes>>, Value, Node = #node{ key = Key, left = Left })
-  when Byte < Key ->
-    Node#node{ left = store(NewKey, Value, Left) };
-
-
-store(NewKey = [Char | _Rest], Value, Node = #node{ key = Key, right = Right })
-  when Char > Key ->
-    Node#node{ right = store(NewKey, Value, Right) };
-
-store(NewKey = <<Byte, _Rest/bytes>>, Value, Node = #node{ key = Key, right = Right })
-  when Byte > Key ->
-    Node#node{ right = store(NewKey, Value, Right) };
-
-
-store(_NewKey = [_Char], Value, Node) ->
+store(_Key = [_C], Value, Node) ->
     Node#node{ value = Value };
 
-store(_NewKey = <<_Byte>>, Value, Node) ->
-    Node#node{ value = Value };
-
-
-store(_NewKey = [_Char | Rest], Value, Node = #node{ mid = Mid }) ->
-    Node#node{ mid = store(Rest, Value, Mid) };
-
-store(_NewKey = <<_Byte, Rest/bytes>>, Value, Node = #node{ mid = Mid }) ->
-    Node#node{ mid = store(Rest, Value, Mid) }.
+store(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
+    Node#node{ mid = store(Other, Value, Mid) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -226,7 +201,7 @@ wildcard_match(_Key, _TST) ->
 fetch_keys(_Node = undefined, _RevPrefix, Keys) ->
     Keys;
 
-fetch_keys(#node{ key = Char, value = Value,
+fetch_keys(#node{ char = Char, value = Value,
                   left = Left, mid = Mid, right = Right },
            RevPrefix, Keys) ->
     Keys1 = fetch_keys(Right, RevPrefix, Keys),
