@@ -93,26 +93,16 @@ insert(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
 %%--------------------------------------------------------------------
 -spec lookup(key(), ternary_trie()) -> {ok, value()} | undefined.
 
-lookup(Key = [C | _Other], #node{ char = Char, left = Left })
-  when C < Char ->
-    lookup(Key, Left);
-
-lookup(Key = [C | _Other], #node{ char = Char, right = Right })
-  when C > Char ->
-    lookup(Key, Right);
-
-lookup(_Key = [_C], #node{ value = Value })
-  when Value =/= undefined ->
-    {ok, Value};
-
-lookup(_Key = [_C | Other], #node{ mid = Mid }) ->
-    lookup(Other, Mid);
-
-lookup(_Key = "", _TST) ->
+lookup(_Key = "", _Trie) ->
     error(badarg);
 
-lookup(_Key, _TST) ->
-    undefined.
+lookup(Key, Trie) ->
+    case lookup_node(Key, Trie) of
+        #node{ value = Value } when Value =/= undefined ->
+            {ok, Value};
+        _Other ->
+            undefined
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
