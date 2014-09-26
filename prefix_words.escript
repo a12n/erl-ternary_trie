@@ -14,7 +14,7 @@ fill_trie(File, N, Trie) ->
     case file:read_line(File) of
         {ok, LineNL} ->
             Line = string:strip(LineNL, right, $\n),
-            fill_trie(File, N + 1, ternary_trie:insert(Line, N, Trie));
+            fill_trie(File, N + 1, ternary_trie:put(Line, N, Trie));
         eof ->
             Trie
     end.
