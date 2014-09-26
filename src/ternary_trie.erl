@@ -89,8 +89,8 @@ fetch(Key, TST) ->
 %%--------------------------------------------------------------------
 -spec fetch_keys(ternary_trie()) -> [key()].
 
-fetch_keys(_TST) ->
-    error(undef).
+fetch_keys(Trie) ->
+    fetch_keys(Trie, "", []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -215,3 +215,26 @@ wildcard_match(_Key, _TST) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%%--------------------------------------------------------------------
+%% @priv
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec fetch_keys(ternary_trie(), string(), [string()]) -> [string()].
+
+fetch_keys(_Node = undefined, _RevPrefix, Keys) ->
+    Keys;
+
+fetch_keys(#node{ key = Char, value = Value,
+                  left = Left, mid = Mid, right = Right },
+           RevPrefix, Keys) ->
+    Keys1 = fetch_keys(Right, RevPrefix, Keys),
+    Keys2 = case Value of
+                undefined ->
+                    Keys1;
+                _Other ->
+                    [lists:reverse([Char | RevPrefix]) | Keys1]
+            end,
+    Keys3 = fetch_keys(Mid, [Char | RevPrefix], Keys2),
+    _Keys4 = fetch_keys(Left, RevPrefix, Keys3).
