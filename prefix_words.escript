@@ -2,8 +2,8 @@
 %% -*- erlang -*-
 %%! -pa ebin/
 
-load_trie() ->
-    {ok, File} = file:open("/usr/share/dict/words", [read]),
+load_trie(FilePath) ->
+    {ok, File} = file:open(FilePath, [read]),
     io:format("Loading words...~n"),
     Trie = fill_trie(File, 1, ternary_trie:new()),
     io:format("Done.~n"),
@@ -31,5 +31,5 @@ loop(Trie) ->
             loop(Trie)
     end.
 
-main(_Args) ->
-    loop(load_trie()).
+main([WordsPath]) ->
+    loop(load_trie(WordsPath)).
