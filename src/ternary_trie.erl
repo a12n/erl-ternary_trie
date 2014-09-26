@@ -10,7 +10,7 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, find/2, insert/3, is_key/2, merge/2, new/0]).
+-export([get/2, get/3, find/2, insert/3, is_key/2, merge/2, new/0]).
 
 %% API
 -export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
@@ -58,6 +58,20 @@ get(Key, Trie) ->
             Value;
         _Other ->
             error(badarg)
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec get(nonempty_string(), ternary_trie(), any()) -> any().
+
+get(Key, Trie, Default) ->
+    try
+        get(Key, Trie)
+    catch
+        error : badarg ->
+            Default
     end.
 
 %%--------------------------------------------------------------------
