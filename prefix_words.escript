@@ -25,9 +25,9 @@ loop(Trie) ->
             ok;
         LineNL ->
             Prefix = string:strip(LineNL, right, $\n),
-            Ans = ternary_trie:prefix(Prefix, Trie),
-            io:format("Prefix = ~p~nlength(Ans) = ~p~nAns = ~p~n",
-                      [Prefix, length(Ans), Ans]),
+            {Time, List} = timer:tc(ternary_trie, prefix, [Prefix, Trie]),
+            io:format("List = ~P~nSize = ~p~nTime = ~f~n",
+                      [List, 50, length(List), Time * 1.0E-6]),
             loop(Trie)
     end.
 
