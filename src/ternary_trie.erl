@@ -26,7 +26,7 @@
 -export([prefix/2, prefix_keys/2]).
 
 %% API
--export([fold/3]).
+-export([fold/3, map/2]).
 
 %%%===================================================================
 %%% Types
@@ -263,6 +263,16 @@ prefix_keys(Prefix, Trie) ->
 fold(Fun, Acc, Trie) ->
     fold(Fun, Acc, Trie, _RevPrefix = "").
 
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec map(fun((nonempty_string(), any()) -> any()), ternary_trie()) ->
+                 ternary_trie().
+
+map(Fun, Trie) ->
+    map(Fun, Trie, _RevPrefix = "").
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
@@ -315,6 +325,33 @@ lookup_node(_Key = "", Node) ->
 
 lookup_node(_Key, _Node = undefined) ->
     undefined.
+
+%%--------------------------------------------------------------------
+%% @priv
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec map(fun((nonempty_string(), any()) -> any()), ternary_trie(),
+          string()) -> ternary_trie().
+
+map(_Fun, Node = undefined, _RevPrefix) ->
+    Node;
+
+map(Fun, Node = #node{ char = Char,
+                       value = Value,
+                       left = Left,
+                       mid = Mid,
+                       right = Right }, RevPrefix) ->
+    RevPrefix1 = [Char | RevPrefix],
+    Node#node{ value = case Value of
+                           undefined ->
+                               Value;
+                           _Other ->
+                               Fun(lists:reverse(RevPrefix1), Value)
+                       end,
+               left = map(Fun, Left, RevPrefix),
+               mid = map(Fun, Mid, RevPrefix1),
+               right = map(Fun, Right, RevPrefix) }.
 
 %%--------------------------------------------------------------------
 %% @priv
