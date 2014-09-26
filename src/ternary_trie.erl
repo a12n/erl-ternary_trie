@@ -10,7 +10,7 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, get/3, find/2, insert/3, is_key/2, merge/2, new/0]).
+-export([get/2, get/3, find/2, is_key/2, merge/2, new/0, put/3]).
 
 %% API
 -export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
@@ -95,32 +95,6 @@ find(Key, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec insert(nonempty_string(), any(), ternary_trie()) -> ternary_trie().
-
-insert(_Key = [C], Value, _Trie = undefined) ->
-    #node{ char = C, value = Value };
-
-insert(_Key = [C | Other], Value, _Trie = undefined) ->
-    #node{ char = C, mid = insert(Other, Value, undefined) };
-
-insert(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
-  when C < Char ->
-    Node#node{ left = insert(Key, Value, Left) };
-
-insert(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
-  when C > Char ->
-    Node#node{ right = insert(Key, Value, Right) };
-
-insert(_Key = [_C], Value, Node) ->
-    Node#node{ value = Value };
-
-insert(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
-    Node#node{ mid = insert(Other, Value, Mid) }.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
 -spec is_key(nonempty_string(), ternary_trie()) -> boolean().
 
 is_key(Key, Trie) ->
@@ -138,7 +112,7 @@ is_key(Key, Trie) ->
 -spec merge(ternary_trie(), ternary_trie()) -> ternary_trie().
 
 merge(Trie1, Trie2) ->
-    fold(fun(K, V, T) -> insert(K, V, T) end, Trie1, Trie2).
+    fold(fun(K, V, T) -> put(K, V, T) end, Trie1, Trie2).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -148,6 +122,32 @@ merge(Trie1, Trie2) ->
 
 new() ->
     _Empty = undefined.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec put(nonempty_string(), any(), ternary_trie()) -> ternary_trie().
+
+put(_Key = [C], Value, _Trie = undefined) ->
+    #node{ char = C, value = Value };
+
+put(_Key = [C | Other], Value, _Trie = undefined) ->
+    #node{ char = C, mid = put(Other, Value, undefined) };
+
+put(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
+  when C < Char ->
+    Node#node{ left = put(Key, Value, Left) };
+
+put(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
+  when C > Char ->
+    Node#node{ right = put(Key, Value, Right) };
+
+put(_Key = [_C], Value, Node) ->
+    Node#node{ value = Value };
+
+put(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
+    Node#node{ mid = put(Other, Value, Mid) }.
 
 %%%===================================================================
 %%% API
@@ -169,7 +169,7 @@ from_keys(Keys) ->
 -spec from_keys([nonempty_string()], ternary_trie()) -> ternary_trie().
 
 from_keys(Keys, Trie) ->
-    lists:foldl(fun(K, T) -> insert(K, true, T) end, Trie, Keys).
+    lists:foldl(fun(K, T) -> put(K, true, T) end, Trie, Keys).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -187,7 +187,7 @@ from_list(List) ->
 -spec from_list([{nonempty_string(), any()}], ternary_trie()) -> ternary_trie().
 
 from_list(List, Trie) ->
-    lists:foldl(fun({K, V}, T) -> insert(K, V, T) end, Trie, List).
+    lists:foldl(fun({K, V}, T) -> put(K, V, T) end, Trie, List).
 
 %%--------------------------------------------------------------------
 %% @doc
