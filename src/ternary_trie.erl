@@ -273,8 +273,14 @@ prefix(Prefix, Trie) ->
 -spec prefix_keys(string(), ternary_trie()) -> [nonempty_string()].
 
 prefix_keys(Prefix, Trie) ->
-    %% TODO
-    lists:map(fun({K, _V}) -> K end, prefix(Prefix, Trie)).
+    case find_node(Prefix, Trie) of
+        undefined ->
+            [];
+        Node ->
+            fold(fun(K, _V, Keys) ->
+                         [K | Keys]
+                 end, [], Node, lists:reverse(Prefix))
+    end.
 
 %%%===================================================================
 %%% Internal functions
