@@ -10,7 +10,7 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, insert/3, is_key/2, lookup/2, new/0]).
+-export([get/2, insert/3, is_key/2, lookup/2, merge/2, new/0]).
 
 %% API
 -export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
@@ -116,6 +116,15 @@ lookup(Key, Trie) ->
         _Other ->
             undefined
     end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec merge(ternary_trie(), ternary_trie()) -> ternary_trie().
+
+merge(Trie1, Trie2) ->
+    fold(fun(K, V, T) -> insert(K, V, T) end, Trie1, Trie2).
 
 %%--------------------------------------------------------------------
 %% @doc
