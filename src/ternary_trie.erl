@@ -61,10 +61,10 @@ get(Key, Trie) ->
 -spec get(nonempty_string(), ternary_trie(), any()) -> any().
 
 get(Key, Trie, Default) ->
-    try
-        get(Key, Trie)
-    catch
-        error : badarg ->
+    case find(Key, Trie) of
+        {ok, Value} ->
+            Value;
+        error ->
             Default
     end.
 
