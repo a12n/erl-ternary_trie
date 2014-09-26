@@ -139,21 +139,46 @@ size(_TST) ->
 store(_NewKey = [Char], Value, _TST = undefined) ->
     #node{ key = Char, value = Value };
 
+store(_NewKey = <<Byte>>, Value, _TST = undefined) ->
+    #node{ key = Byte, value = Value };
+
+
 store(_NewKey = [Char | Rest], Value, _TST = undefined) ->
     #node{ key = Char, mid = store(Rest, Value, undefined) };
+
+store(_NewKey = <<Byte, Rest/bytes>>, Value, _TST = undefined) ->
+    #node{ key = Byte, mid = store(Rest, Value, undefined) };
+
 
 store(NewKey = [Char | _Rest], Value, Node = #node{ key = Key, left = Left })
   when Char < Key ->
     Node#node{ left = store(NewKey, Value, Left) };
 
+store(NewKey = <<Byte, _Rest/bytes>>, Value, Node = #node{ key = Key, left = Left })
+  when Byte < Key ->
+    Node#node{ left = store(NewKey, Value, Left) };
+
+
 store(NewKey = [Char | _Rest], Value, Node = #node{ key = Key, right = Right })
   when Char > Key ->
     Node#node{ right = store(NewKey, Value, Right) };
 
+store(NewKey = <<Byte, _Rest/bytes>>, Value, Node = #node{ key = Key, right = Right })
+  when Byte > Key ->
+    Node#node{ right = store(NewKey, Value, Right) };
+
+
 store(_NewKey = [_Char], Value, Node) ->
     Node#node{ value = Value };
 
+store(_NewKey = <<_Byte>>, Value, Node) ->
+    Node#node{ value = Value };
+
+
 store(_NewKey = [_Char | Rest], Value, Node = #node{ mid = Mid }) ->
+    Node#node{ mid = store(Rest, Value, Mid) };
+
+store(_NewKey = <<_Byte, Rest/bytes>>, Value, Node = #node{ mid = Mid }) ->
     Node#node{ mid = store(Rest, Value, Mid) }.
 
 %%--------------------------------------------------------------------
