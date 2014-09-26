@@ -234,7 +234,7 @@ nearest_keys(Key, Distance, Trie) ->
 -spec match(nonempty_string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
 match(Pattern, Trie) ->
-    to_list(Trie, _RevPrefix = "", Pattern, _List = []).
+    match(Pattern, Trie, _RevPrefix = "", _List = []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -367,20 +367,21 @@ map(Fun, Node = #node{ char = Char,
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec to_list(ternary_trie(), string(), string(),
-              [{nonempty_string(), any()}]) ->
-                     [{nonempty_string(), any()}].
+-spec match(string(), ternary_trie(), string(),
+            [{nonempty_string(), any()}]) ->
+                   [{nonempty_string(), any()}].
 
-to_list(_Node = undefined, _RevPrefix, _Pattern, List) ->
+match(_Pattern, _Node = undefined, _RevPrefix, List) ->
     List;
 
-to_list(#node{ char = Char, value = Value,
-               left = Left, mid = Mid, right = Right },
-        RevPrefix, Pattern = [C | Other], List) ->
+match(Pattern = [C | Other],
+      #node{ char = Char, value = Value,
+             left = Left, mid = Mid, right = Right },
+      RevPrefix, List) ->
     RevPrefix1 = [Char | RevPrefix],
     List1 =
         if (C > Char) or (C == $.) ->
-                to_list(Right, RevPrefix, Pattern, List);
+                match(Pattern, Right, RevPrefix, List);
            true ->
                 List
         end,
@@ -396,14 +397,14 @@ to_list(#node{ char = Char, value = Value,
                                 [{Key, Value} | List1]
                         end;
                     _NonEmpty ->
-                        to_list(Mid, RevPrefix1, Other, List1)
+                        match(Other, Mid, RevPrefix1, List1)
                 end;
            true ->
                 List1
         end,
-    List3 =
+    _List3 =
         if (C < Char) or (C == $.) ->
-                to_list(Left, RevPrefix, Pattern, List2);
+                match(Pattern, Left, RevPrefix, List2);
            true ->
                 List2
         end.
