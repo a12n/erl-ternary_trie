@@ -401,3 +401,52 @@ match(Pattern = [C | Other],
            true ->
                 List2
         end.
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+get_2_test_() ->
+    [ ?_assertError(badarg, get("", from_list([{"A", 1}]))),
+      ?_assertError(badarg, get("A", new())),
+      ?_assertError(badarg, get("B", from_list([{"A", 1}]))),
+      ?_assertEqual(12, get("CBL", from_list([{"CBL",12}]))) ].
+
+get_3_test_() ->
+    [ ?_assertError(badarg, get("", from_list([{"A", 1}]), 12)),
+      ?_assertEqual(12, get("B", from_list([{"A", 1}]), 12)),
+      ?_assertEqual(1, get("A", from_list([{"A", 1}]), 12)) ].
+
+find_2_test_() ->
+    [ ?_assertError(badarg, find("", new())),
+      ?_assertEqual(error, find("A", new())),
+      ?_assertEqual({ok, 12}, find("A", from_list([{"A", 12}]))) ].
+
+fold_3_test_() ->
+    [ ?_assertEqual(0, fold(fun(_K, V, A) -> V + A end, 0, new())),
+      ?_assertEqual(6, fold(fun(_K, V, A) -> V + A end, 0,
+                            from_list([{"A", 1}, {"BC", 2}, {"ZYX", 3}]))),
+      ?_assertEqual(true, fold(fun(_K, V, A) -> (V and A) end, true,
+                               from_list([{"Z", true}, {"GHC", true}, {"YUA", true}]))) ].
+
+from_list_1_test_() ->
+    List = [{"HKM", 12}, {"LM", 10}, {"OPQ", 19}],
+    [ ?_assertEqual(List, to_list(from_list(List))),
+      ?_assertEqual([], to_list(from_list([]))),
+      ?_assertEqual([{"A", 1}, {"CB", 2}, {"ZHK", 3}],
+                    to_list(from_list([{"ZHK", 3}, {"CB", 2}, {"A", 1}]))) ].
+
+is_key_2_test_() ->
+    [ ?_assert(is_key("A", from_list([{"A", 1}, {"AA", 2}]))),
+      ?_assertError(badarg, is_key("", new())),
+      ?_assertNot(is_key("A", new())) ].
+
+keys_1_test_() ->
+    [ ?_assertError(["ABC", "GHC", "KFC"], keys(from_list([{"GHC", 12}, {"KFC", 33}, {"ABC", 99}]))),
+      ?_assertEqual([], keys(from_list([]))) ].
+
+-endif.
