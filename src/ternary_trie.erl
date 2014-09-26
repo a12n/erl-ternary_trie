@@ -186,8 +186,7 @@ put(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
 -spec keys(ternary_trie()) -> [nonempty_string()].
 
 keys(Trie) ->
-    %% TODO
-    lists:map(fun({K, _V}) -> K end, to_list(Trie)).
+    fold(fun(K, _V, Keys) -> [K | Keys] end, [], Trie).
 
 %%--------------------------------------------------------------------
 %% @doc
