@@ -195,7 +195,7 @@ keys(Trie) ->
 -spec to_list(ternary_trie()) -> [{nonempty_string(), any()}].
 
 to_list(Trie) ->
-    to_list(Trie, _RevPrefix = "", _List = []).
+    fold(fun(K, V, List) -> [{K, V} | List] end, [], Trie).
 
 %%%===================================================================
 %%% API
