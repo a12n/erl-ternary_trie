@@ -14,7 +14,7 @@
          new/0, put/3]).
 
 %% API
--export([from_list/1, from_list/2, keys/1, to_list/1]).
+-export([from_list/1, keys/1, to_list/1]).
 
 %% API
 -export([nearest/3, nearest_keys/3]).
@@ -177,16 +177,7 @@ put(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
 -spec from_list([{nonempty_string(), any()}]) -> ternary_trie().
 
 from_list(List) ->
-    from_list(List, new()).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec from_list([{nonempty_string(), any()}], ternary_trie()) -> ternary_trie().
-
-from_list(List, Trie) ->
-    lists:foldl(fun({K, V}, T) -> put(K, V, T) end, Trie, List).
+    lists:foldl(fun({K, V}, T) -> put(K, V, T) end, new(), List).
 
 %%--------------------------------------------------------------------
 %% @doc
