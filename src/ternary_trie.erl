@@ -206,9 +206,8 @@ nearest_keys(Key, Distance, Trie) ->
 %%--------------------------------------------------------------------
 -spec match(key(), ternary_trie()) -> [{key(), value()}].
 
-match(_Key, _Trie) ->
-    %% TODO
-    [].
+match(Pattern, Trie) ->
+    to_list(Trie, _RevPrefix = "", Pattern, _List = []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -216,9 +215,9 @@ match(_Key, _Trie) ->
 %%--------------------------------------------------------------------
 -spec match_keys(key(), ternary_trie()) -> [key()].
 
-match_keys(Key, Trie) ->
+match_keys(Pattern, Trie) ->
     %% TODO
-    lists:map(fun({K, _V}) -> K end, match(Key, Trie)).
+    lists:map(fun({K, _V}) -> K end, match(Pattern, Trie)).
 
 %%%===================================================================
 %%% API
@@ -299,3 +298,48 @@ to_list(#node{ char = Char, value = Value,
             end,
     List3 = to_list(Mid, RevPrefix1, List2),
     to_list(Left, RevPrefix, List3).
+
+%%--------------------------------------------------------------------
+%% @priv
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec to_list(ternary_trie(), string(), string(), [{key(), value()}]) ->
+                     [{key(), value()}].
+
+to_list(_Node = undefined, _RevPrefix, _Pattern, List) ->
+    List;
+
+to_list(#node{ char = Char, value = Value,
+               left = Left, mid = Mid, right = Right },
+        RevPrefix, Pattern = [C | Other], List) ->
+    RevPrefix1 = [Char | RevPrefix],
+    List1 =
+        if (C > Char) or (C == $.) ->
+                to_list(Right, RevPrefix, Pattern, List);
+           true ->
+                List
+        end,
+    List2 =
+        if (C == Char) or (C == $.) ->
+                case Other of
+                    [] ->
+                        case Value of
+                            undefined ->
+                                List1;
+                            _Some ->
+                                Key = lists:reverse(RevPrefix1),
+                                [{Key, Value} | List1]
+                        end;
+                    _NonEmpty ->
+                        to_list(Mid, RevPrefix1, Other, List1)
+                end;
+           true ->
+                List1
+        end,
+    List3 =
+        if (C < Char) or (C == $.) ->
+                to_list(Left, RevPrefix, Pattern, List2);
+           true ->
+                List2
+        end.
