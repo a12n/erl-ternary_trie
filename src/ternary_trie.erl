@@ -10,7 +10,7 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, insert/3, lookup/2, new/0]).
+-export([get/2, insert/3, is_key/2, lookup/2, new/0]).
 
 %% API
 -export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
@@ -85,6 +85,20 @@ insert(_Key = [_C], Value, Node) ->
 
 insert(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
     Node#node{ mid = insert(Other, Value, Mid) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec is_key(nonempty_string(), ternary_trie()) -> boolean().
+
+is_key(Key, Trie) ->
+    case lookup(Key, Trie) of
+        {ok, _Value} ->
+            true;
+        _Other ->
+            false
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
