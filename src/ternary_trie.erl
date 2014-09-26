@@ -10,7 +10,7 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, insert/3, is_key/2, lookup/2, merge/2, new/0]).
+-export([get/2, find/2, insert/3, is_key/2, merge/2, new/0]).
 
 %% API
 -export([from_keys/1, from_keys/2, from_list/1, from_list/2, keys/1,
@@ -53,11 +53,28 @@
 -spec get(nonempty_string(), ternary_trie()) -> any().
 
 get(Key, Trie) ->
-    case lookup(Key, Trie) of
+    case find(Key, Trie) of
         {ok, Value} ->
             Value;
         _Other ->
             error(badarg)
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec find(nonempty_string(), ternary_trie()) -> {ok, any()} | undefined.
+
+find(_Key = "", _Trie) ->
+    error(badarg);
+
+find(Key, Trie) ->
+    case find_node(Key, Trie) of
+        #node{ value = Value } when Value =/= undefined ->
+            {ok, Value};
+        _Other ->
+            undefined
     end.
 
 %%--------------------------------------------------------------------
@@ -93,28 +110,11 @@ insert(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
 -spec is_key(nonempty_string(), ternary_trie()) -> boolean().
 
 is_key(Key, Trie) ->
-    case lookup(Key, Trie) of
+    case find(Key, Trie) of
         {ok, _Value} ->
             true;
         _Other ->
             false
-    end.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec lookup(nonempty_string(), ternary_trie()) -> {ok, any()} | undefined.
-
-lookup(_Key = "", _Trie) ->
-    error(badarg);
-
-lookup(Key, Trie) ->
-    case lookup_node(Key, Trie) of
-        #node{ value = Value } when Value =/= undefined ->
-            {ok, Value};
-        _Other ->
-            undefined
     end.
 
 %%--------------------------------------------------------------------
@@ -254,7 +254,7 @@ match_keys(Pattern, Trie) ->
 -spec prefix(string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
 prefix(Prefix, Trie) ->
-    case lookup_node(Prefix, Trie) of
+    case find_node(Prefix, Trie) of
         undefined ->
             [];
         Node ->
@@ -330,23 +330,23 @@ fold(Fun, Acc, _Node = #node{ char = Char,
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec lookup_node(string(), ternary_trie()) -> #node{} | undefined.
+-spec find_node(string(), ternary_trie()) -> #node{} | undefined.
 
-lookup_node(Key = [C | _Other], #node{ char = Char, left = Left })
+find_node(Key = [C | _Other], #node{ char = Char, left = Left })
   when C < Char ->
-    lookup_node(Key, Left);
+    find_node(Key, Left);
 
-lookup_node(Key = [C | _Other], #node{ char = Char, right = Right })
+find_node(Key = [C | _Other], #node{ char = Char, right = Right })
   when C > Char ->
-    lookup_node(Key, Right);
+    find_node(Key, Right);
 
-lookup_node(_Key = [_C | Other], #node{ mid = Mid }) ->
-    lookup_node(Other, Mid);
+find_node(_Key = [_C | Other], #node{ mid = Mid }) ->
+    find_node(Other, Mid);
 
-lookup_node(_Key = "", Node) ->
+find_node(_Key = "", Node) ->
     Node;
 
-lookup_node(_Key, _Node = undefined) ->
+find_node(_Key, _Node = undefined) ->
     undefined.
 
 %%--------------------------------------------------------------------
