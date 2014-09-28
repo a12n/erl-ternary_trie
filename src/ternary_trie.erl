@@ -10,7 +10,7 @@
 -export_type([ternary_trie/0, t/0]).
 
 %% API
--export([get/2, get/3, find/2, fold/3, keys/1, from_list/1, is_key/2,
+-export([find/2, fold/3, from_list/1, get/2, get/3, is_key/2, keys/1,
          map/2, merge/2, new/0, put/3, to_list/1]).
 
 %% API
@@ -39,34 +39,6 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec get(nonempty_string(), ternary_trie()) -> any().
-
-get(Key, Trie) ->
-    case find(Key, Trie) of
-        {ok, Value} ->
-            Value;
-        error ->
-            error(badarg)
-    end.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec get(nonempty_string(), ternary_trie(), any()) -> any().
-
-get(Key, Trie, Default) ->
-    case find(Key, Trie) of
-        {ok, Value} ->
-            Value;
-        error ->
-            Default
-    end.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -103,6 +75,34 @@ fold(Fun, Acc, Trie) ->
 
 from_list(List) ->
     lists:foldl(fun({K, V}, T) -> put(K, V, T) end, new(), List).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec get(nonempty_string(), ternary_trie()) -> any().
+
+get(Key, Trie) ->
+    case find(Key, Trie) of
+        {ok, Value} ->
+            Value;
+        error ->
+            error(badarg)
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec get(nonempty_string(), ternary_trie(), any()) -> any().
+
+get(Key, Trie, Default) ->
+    case find(Key, Trie) of
+        {ok, Value} ->
+            Value;
+        error ->
+            Default
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -311,16 +311,16 @@ fold(Fun, Acc, _Node = #node{ char = Char,
 %%--------------------------------------------------------------------
 -spec find_node(string(), ternary_trie()) -> #node{} | undefined.
 
-find_node(Key = [C | _Other], #node{ char = Char, left = Left })
+find_node(Key = [C | _Other], _Node = #node{ char = Char, left = Left })
   when C < Char ->
     find_node(Key, Left);
 
-find_node(Key = [C | _Other], #node{ char = Char, right = Right })
+find_node(Key = [C | _Other], _Node = #node{ char = Char, right = Right })
   when C > Char ->
     find_node(Key, Right);
 
-find_node(_Key = [_C | Other], #node{ mid = Mid }) ->
-    find_node(Other, Mid);
+find_node(_Key = [_C], Node = #node{}) ->
+    Node;
 
 find_node(_Key = "", Node) ->
     Node;
@@ -410,17 +410,6 @@ match(Pattern = [C | Other],
 
 -include_lib("eunit/include/eunit.hrl").
 
-get_2_test_() ->
-    [ ?_assertError(badarg, get("", from_list([{"A", 1}]))),
-      ?_assertError(badarg, get("A", new())),
-      ?_assertError(badarg, get("B", from_list([{"A", 1}]))),
-      ?_assertEqual(12, get("CBL", from_list([{"CBL",12}]))) ].
-
-get_3_test_() ->
-    [ ?_assertError(badarg, get("", from_list([{"A", 1}]), 12)),
-      ?_assertEqual(12, get("B", from_list([{"A", 1}]), 12)),
-      ?_assertEqual(1, get("A", from_list([{"A", 1}]), 12)) ].
-
 find_2_test_() ->
     [ ?_assertError(badarg, find("", new())),
       ?_assertEqual(error, find("A", new())),
@@ -440,13 +429,24 @@ from_list_1_test_() ->
       ?_assertEqual([{"A", 1}, {"CB", 2}, {"ZHK", 3}],
                     to_list(from_list([{"ZHK", 3}, {"CB", 2}, {"A", 1}]))) ].
 
+get_2_test_() ->
+    [ ?_assertError(badarg, get("", from_list([{"A", 1}]))),
+      ?_assertError(badarg, get("A", new())),
+      ?_assertError(badarg, get("B", from_list([{"A", 1}]))),
+      ?_assertEqual(12, get("CBL", from_list([{"CBL",12}]))) ].
+
+get_3_test_() ->
+    [ ?_assertError(badarg, get("", from_list([{"A", 1}]), 12)),
+      ?_assertEqual(12, get("B", from_list([{"A", 1}]), 12)),
+      ?_assertEqual(1, get("A", from_list([{"A", 1}]), 12)) ].
+
 is_key_2_test_() ->
     [ ?_assert(is_key("A", from_list([{"A", 1}, {"AA", 2}]))),
       ?_assertError(badarg, is_key("", new())),
       ?_assertNot(is_key("A", new())) ].
 
 keys_1_test_() ->
-    [ ?_assertError(["ABC", "GHC", "KFC"], keys(from_list([{"GHC", 12}, {"KFC", 33}, {"ABC", 99}]))),
+    [ ?_assertEqual(["ABC", "GHC", "KFC"], keys(from_list([{"GHC", 12}, {"KFC", 33}, {"ABC", 99}]))),
       ?_assertEqual([], keys(from_list([]))) ].
 
 -endif.
