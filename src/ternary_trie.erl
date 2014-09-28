@@ -197,9 +197,20 @@ remove(_Key, Trie) ->
 %%--------------------------------------------------------------------
 -spec size(ternary_trie()) -> non_neg_integer().
 
-size(_Trie) ->
-    %% TODO
-    0.
+size(_Trie = undefined) ->
+    0;
+
+size(_Trie = #node{ value = Value,
+                    left = Left,
+                    mid = Mid,
+                    right = Right }) ->
+    ?MODULE:size(Left) + ?MODULE:size(Mid) + ?MODULE:size(Right) +
+        case Value of
+            undefined ->
+                0;
+            _Other ->
+                1
+        end.
 
 %%--------------------------------------------------------------------
 %% @doc
