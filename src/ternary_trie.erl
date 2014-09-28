@@ -322,6 +322,9 @@ find_node(Key = [C | _Other], _Node = #node{ char = Char, right = Right })
 find_node(_Key = [_C], Node = #node{}) ->
     Node;
 
+find_node(_Key = [_C | Other], _Node = #node{ mid = Mid }) ->
+    find_node(Other, Mid);
+
 find_node(_Key = "", Node) ->
     Node;
 
