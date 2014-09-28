@@ -490,9 +490,9 @@ merge_2_test_() ->
                                               {"B", 4} ])))) ].
 
 size_1_test_() ->
-    [ ?_assertEqual(0, ternary_trie:size(new())),
-      ?_assertEqual(1, ternary_trie:size(from_list([{"A", 1}]))),
-      ?_assertEqual(1, ternary_trie:size(from_list([{"A", 1}, {"A", 2}]))),
-      ?_assertEqual(2, ternary_trie:size(from_list([{"A", 1}, {"AA", 2}]))) ].
+    [ ?_assertEqual(0, ?MODULE:size(new())),
+      ?_assertEqual(1, ?MODULE:size(from_list([{"A", 1}]))),
+      ?_assertEqual(1, ?MODULE:size(from_list([{"A", 1}, {"A", 2}]))),
+      ?_assertEqual(2, ?MODULE:size(from_list([{"A", 1}, {"AA", 2}]))) ].
 
 -endif.
