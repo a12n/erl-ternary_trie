@@ -11,7 +11,7 @@
 
 %% API
 -export([find/2, fold/3, from_list/1, get/2, get/3, is_key/2, keys/1,
-         map/2, merge/2, new/0, put/3, to_list/1]).
+         map/2, merge/2, new/0, put/3, remove/2, size/1, to_list/1]).
 
 %% API
 -export([nearest/3, nearest_keys/3]).
@@ -180,6 +180,26 @@ put(_Key = [_C], Value, Node) ->
 
 put(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
     Node#node{ mid = put(Other, Value, Mid) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec remove(nonempty_string(), ternary_trie()) -> ternary_trie().
+
+remove(_Key, Trie) ->
+    %% TODO
+    Trie.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec size(ternary_trie()) -> non_neg_integer().
+
+size(_Trie) ->
+    %% TODO
+    0.
 
 %%--------------------------------------------------------------------
 %% @doc
