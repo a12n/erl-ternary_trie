@@ -281,14 +281,7 @@ match_keys(Pattern, Trie) ->
 -spec prefix(string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
 prefix(Prefix, Trie) ->
-    case find_node(Prefix, Trie) of
-        undefined ->
-            [];
-        Node ->
-            fold(fun(K, V, List) ->
-                         [{K, V} | List]
-                 end, [], Node, lists:reverse(Prefix))
-    end.
+    prefix(Prefix, Trie, fun(K, V, List) -> [{K, V} | List] end).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -297,14 +290,7 @@ prefix(Prefix, Trie) ->
 -spec prefix_keys(string(), ternary_trie()) -> [nonempty_string()].
 
 prefix_keys(Prefix, Trie) ->
-    case find_node(Prefix, Trie) of
-        undefined ->
-            [];
-        Node ->
-            fold(fun(K, _V, Keys) ->
-                         [K | Keys]
-                 end, [], Node, lists:reverse(Prefix))
-    end.
+    prefix(Prefix, Trie, fun(K, _V, Keys) -> [K | Keys] end).
 
 %%%===================================================================
 %%% Internal functions
@@ -432,6 +418,29 @@ match(Pattern = [C | Other],
            true ->
                 List2
         end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec prefix(string(), ternary_trie(), fun()) -> [any()].
+
+prefix(_Prefix = "", Trie, FoldFun) ->
+    fold(FoldFun, [], Trie, _RevPrefix = "");
+
+prefix(Prefix, Trie, FoldFun) ->
+    case find_node(Prefix, Trie) of
+        #node{ value = Value, mid = Mid } ->
+            List0 = case Value of
+                        undefined ->
+                            [];
+                        _Other ->
+                            FoldFun(Prefix, Value, [])
+                   end,
+            fold(FoldFun, List0, Mid, lists:reverse(Prefix));
+        undefined ->
+            []
+    end.
 
 %%%===================================================================
 %%% Tests
