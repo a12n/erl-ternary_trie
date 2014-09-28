@@ -489,4 +489,10 @@ merge_2_test_() ->
                                               {"BB", 3},
                                               {"B", 4} ])))) ].
 
+size_1_test_() ->
+    [ ?_assertEqual(0, new()),
+      ?_assertEqual(1, from_list([{"A", 1}])),
+      ?_assertEqual(1, from_list([{"A", 1}, {"A", 2}])),
+      ?_assertEqual(2, from_list([{"A", 1}, {"AA", 2}])) ].
+
 -endif.
