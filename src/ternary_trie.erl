@@ -449,4 +449,13 @@ keys_1_test_() ->
     [ ?_assertEqual(["ABC", "GHC", "KFC"], keys(from_list([{"GHC", 12}, {"KFC", 33}, {"ABC", 99}]))),
       ?_assertEqual([], keys(from_list([]))) ].
 
+map_2_test_() ->
+    [ ?_assertEqual([], to_list(map(fun erlang:'++'/2, from_list([])))),
+      ?_assertEqual([ {"AAA", "AAABBB"},
+                      {"AA", "AABB"},
+                      {"A", "AB"} ],
+                    to_list(map(fun erlang:'++'/2, from_list([ {"A", "B"},
+                                                               {"AA", "BB"},
+                                                               {"AAA", "BBB"} ])))) ].
+
 -endif.
