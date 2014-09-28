@@ -461,4 +461,12 @@ map_2_test_() ->
                                                                {"AA", "BB"},
                                                                {"AAA", "BBB"} ])))) ].
 
+merge_2_test_() ->
+    [ ?_assertEqual([ {"AA", 2}, {"A", 1}, {"BB", 3}, {"B", 4} ],
+                    to_list(merge(from_list([ {"A", 1},
+                                              {"B", 444} ]),
+                                  from_list([ {"AA", 2},
+                                              {"BB", 3},
+                                              {"B", 4} ])))) ].
+
 -endif.
