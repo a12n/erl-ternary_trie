@@ -400,7 +400,7 @@ match_node(Pattern = [C | Other],
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec prefix_node(string(), #node{}, fun()) -> [any()].
+-spec prefix_node(string(), #node{}, fold_fun()) -> [any()].
 
 prefix_node(_Prefix = "", Node, FoldFun) ->
     fold_node(FoldFun, [], Node, _RevPrefix = "");
