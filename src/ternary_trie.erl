@@ -262,15 +262,15 @@ fold_node(Fun, Acc, _Node = #node{ char = Char,
                                    mid = Mid,
                                    right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
-    RightAcc = fold_node(Fun, Acc, Right, RevPrefix),
+    LeftAcc = fold_node(Fun, Acc, Left, RevPrefix),
     ValueAcc = case Value of
                    undefined ->
-                       RightAcc;
+                       LeftAcc;
                    _Other ->
-                       Fun(lists:reverse(RevPrefix1), Value, RightAcc)
+                       Fun(lists:reverse(RevPrefix1), Value, LeftAcc)
                end,
     MidAcc = fold_node(Fun, ValueAcc, Mid, RevPrefix1),
-    _LeftAcc = fold_node(Fun, MidAcc, Left, RevPrefix).
+    _RightAcc = fold_node(Fun, MidAcc, Right, RevPrefix).
 
 %%--------------------------------------------------------------------
 %% @doc
