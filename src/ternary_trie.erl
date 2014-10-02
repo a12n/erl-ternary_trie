@@ -237,8 +237,9 @@ prefix(Prefix, _Trie = #trie{ root = Root }) ->
                         _Other ->
                             [{Prefix, Value}]
                     end,
-            fold_node(fun(K, V, List) -> [{K, V} | List] end,
-                      List0, Mid, lists:reverse(Prefix));
+            lists:reverse(
+              fold_node(fun(K, V, List) -> [{K, V} | List] end,
+                        List0, Mid, lists:reverse(Prefix)));
         undefined ->
             []
     end.
