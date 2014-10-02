@@ -442,6 +442,9 @@ put_node(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
     {N, NewRight} = put_node(Key, Value, Right),
     {N, Node#node{ right = NewRight }};
 
+put_node(_Key = [_C], Value, Node = #node{ value = undefined }) ->
+    {1, Node#node{ value = Value }};
+
 put_node(_Key = [_C], Value, Node) ->
     {0, Node#node{ value = Value }};
 
