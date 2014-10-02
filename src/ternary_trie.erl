@@ -450,15 +450,15 @@ keys_1_test_() ->
 
 map_2_test_() ->
     [ ?_assertEqual([], to_list(map(fun erlang:'++'/2, from_list([])))),
-      ?_assertEqual([ {"AAA", "AAABBB"},
+      ?_assertEqual([ {"A", "AB"},
                       {"AA", "AABB"},
-                      {"A", "AB"} ],
-                    to_list(map(fun erlang:'++'/2, from_list([ {"A", "B"},
+                      {"AAA", "AAABBB"} ],
+                    to_list(map(fun erlang:'++'/2, from_list([ {"AAA", "BBB"},
                                                                {"AA", "BB"},
-                                                               {"AAA", "BBB"} ])))) ].
+                                                               {"A", "B"} ])))) ].
 
 merge_2_test_() ->
-    [ ?_assertEqual([ {"AA", 2}, {"A", 1}, {"BB", 3}, {"B", 4} ],
+    [ ?_assertEqual([ {"A", 1}, {"AA", 2}, {"B", 4}, {"BB", 3} ],
                     to_list(merge(from_list([ {"A", 1},
                                               {"B", 444} ]),
                                   from_list([ {"AA", 2},

@@ -2,6 +2,6 @@
 
 {application, ternary_trie,
  [{description, "Ternary search trie data structure"},
-  {vsn, "0.18.4"},
+  {vsn, "0.18.5"},
   {modules, []},
   {applications, [kernel, stdlib]}]}.
