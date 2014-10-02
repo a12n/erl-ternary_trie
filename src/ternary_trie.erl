@@ -7,7 +7,7 @@
 -module(ternary_trie).
 
 %% Types
--export_type([ternary_trie/0, t/0]).
+-export_type([fold_fun/0, map_fun/0, ternary_trie/0, t/0]).
 
 %% API
 -export([find/2, fold/3, from_list/1, get/2, get/3, is_key/2, keys/1,
@@ -36,6 +36,13 @@
 
 -type t() :: ternary_trie().
 
+-type fold_fun() :: fun((_Key :: nonempty_string(),
+                         _Value :: any(),
+                         _Acc :: any()) -> _NewAcc :: any()).
+
+-type map_fun() :: fun((_Key :: nonempty_string(),
+                        _Value :: any()) -> _NewValue :: any()).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -61,8 +68,7 @@ find(Key, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec fold(fun((nonempty_string(), any(), any()) -> any()),
-           any(), ternary_trie()) -> any().
+-spec fold(fold_fun(), any(), ternary_trie()) -> any().
 
 fold(Fun, Acc, Trie) ->
     fold(Fun, Acc, Trie, _RevPrefix = "").
@@ -131,8 +137,7 @@ keys(Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec map(fun((nonempty_string(), any()) -> any()), ternary_trie()) ->
-                 ternary_trie().
+-spec map(map_fun(), ternary_trie()) -> ternary_trie().
 
 map(Fun, Trie) ->
     map(Fun, Trie, _RevPrefix = "").
@@ -300,8 +305,7 @@ prefix_keys(Prefix, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec fold(fun((nonempty_string(), any(), any()) -> any()),
-           any(), ternary_trie(), string()) -> any().
+-spec fold(fold_fun(), any(), ternary_trie(), string()) -> any().
 
 fold(_Fun, Acc, _Trie = undefined, _RevPrefix) ->
     Acc;
@@ -350,8 +354,7 @@ find_node(_Key, _Node = undefined) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec map(fun((nonempty_string(), any()) -> any()), ternary_trie(),
-          string()) -> ternary_trie().
+-spec map(map_fun(), ternary_trie(), string()) -> ternary_trie().
 
 map(_Fun, Node = undefined, _RevPrefix) ->
     Node;
