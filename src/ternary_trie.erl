@@ -128,7 +128,7 @@ is_key(Key, Trie) ->
 -spec keys(ternary_trie()) -> [nonempty_string()].
 
 keys(Trie) ->
-    fold(fun(K, _V, Keys) -> [K | Keys] end, [], Trie).
+    lists:reverse(fold(fun(K, _V, Keys) -> [K | Keys] end, [], Trie)).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -193,7 +193,7 @@ size(#trie{ size = Size }) ->
 -spec to_list(ternary_trie()) -> [{nonempty_string(), any()}].
 
 to_list(Trie) ->
-    fold(fun(K, V, List) -> [{K, V} | List] end, [], Trie).
+    lists:reverse(fold(fun(K, V, List) -> [{K, V} | List] end, [], Trie)).
 
 %%%===================================================================
 %%% API
