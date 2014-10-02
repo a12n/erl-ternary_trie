@@ -339,13 +339,15 @@ match_node(Pattern = [C | Other],
            RevPrefix, List) ->
     RevPrefix1 = [Char | RevPrefix],
     List1 =
-        if (C > Char) or (C == $.) ->
+        case (C > Char) or (C == $.) of
+            true ->
                 match_node(Pattern, Right, RevPrefix, List);
-           true ->
+            false ->
                 List
         end,
     List2 =
-        if (C == Char) or (C == $.) ->
+        case (C == Char) or (C == $.) of
+            true ->
                 case Other of
                     [] ->
                         case Value of
@@ -358,13 +360,14 @@ match_node(Pattern = [C | Other],
                     _NonEmpty ->
                         match_node(Other, Mid, RevPrefix1, List1)
                 end;
-           true ->
+            false ->
                 List1
         end,
     _List3 =
-        if (C < Char) or (C == $.) ->
+        case (C < Char) or (C == $.) of
+            true ->
                 match_node(Pattern, Left, RevPrefix, List2);
-           true ->
+            false ->
                 List2
         end.
 
