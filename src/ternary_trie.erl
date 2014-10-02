@@ -14,13 +14,7 @@
          map/2, merge/2, new/0, put/3, remove/2, size/1, to_list/1]).
 
 %% API
--export([nearest/3, nearest_keys/3]).
-
-%% API
--export([match/2, match_keys/2]).
-
-%% API
--export([prefix/2, prefix_keys/2]).
+-export([match/2, nearest/3, prefix/2]).
 
 %%%===================================================================
 %%% Types
@@ -209,6 +203,15 @@ to_list(Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
+-spec match(nonempty_string(), ternary_trie()) -> [{nonempty_string(), any()}].
+
+match(Pattern, _Trie = #trie{ root = Root }) ->
+    match_node(Pattern, Root, _RevPrefix = "", _List = []).
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
 -spec nearest(nonempty_string(), pos_integer(), ternary_trie()) ->
                      [{nonempty_string(), any()}].
 
@@ -220,57 +223,25 @@ nearest(_Key, _Distance, _Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec nearest_keys(nonempty_string(), pos_integer(), ternary_trie()) ->
-                          [nonempty_string()].
-
-nearest_keys(Key, Distance, Trie) ->
-    %% TODO
-    lists:map(fun({K, _V}) -> K end, nearest(Key, Distance, Trie)).
-
-%%%===================================================================
-%%% API
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec match(nonempty_string(), ternary_trie()) -> [{nonempty_string(), any()}].
-
-match(Pattern, _Trie = #trie{ root = Root }) ->
-    match_node(Pattern, Root, _RevPrefix = "", _List = []).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec match_keys(nonempty_string(), ternary_trie()) -> [nonempty_string()].
-
-match_keys(Pattern, Trie) ->
-    %% TODO
-    lists:map(fun({K, _V}) -> K end, match(Pattern, Trie)).
-
-%%%===================================================================
-%%% API
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
 -spec prefix(string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
+prefix(_Prefix = "", Trie) ->
+    to_list(Trie);
+
 prefix(Prefix, _Trie = #trie{ root = Root }) ->
-    prefix_node(Prefix, Root, fun(K, V, List) -> [{K, V} | List] end).
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec prefix_keys(string(), ternary_trie()) -> [nonempty_string()].
-
-prefix_keys(Prefix, _Trie = #trie{ root = Root }) ->
-    prefix_node(Prefix, Root, fun(K, _V, Keys) -> [K | Keys] end).
+    case find_node(Prefix, Root) of
+        #node{ value = Value, mid = Mid } ->
+            List0 = case Value of
+                        undefined ->
+                            [];
+                        _Other ->
+                            [{Prefix, Value}]
+                    end,
+            fold_node(fun(K, V, List) -> [{K, V} | List] end,
+                      List0, Mid, lists:reverse(Prefix));
+        undefined ->
+            []
+    end.
 
 %%%===================================================================
 %%% Internal functions
@@ -395,29 +366,6 @@ match_node(Pattern = [C | Other],
            true ->
                 List2
         end.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% @end
-%%--------------------------------------------------------------------
--spec prefix_node(string(), #node{}, fold_fun()) -> [any()].
-
-prefix_node(_Prefix = "", Node, FoldFun) ->
-    fold_node(FoldFun, [], Node, _RevPrefix = "");
-
-prefix_node(Prefix, Node, FoldFun) ->
-    case find_node(Prefix, Node) of
-        #node{ value = Value, mid = Mid } ->
-            List0 = case Value of
-                        undefined ->
-                            [];
-                        _Other ->
-                            FoldFun(Prefix, Value, [])
-                   end,
-            fold_node(FoldFun, List0, Mid, lists:reverse(Prefix));
-        undefined ->
-            []
-    end.
 
 %%--------------------------------------------------------------------
 %% @doc
