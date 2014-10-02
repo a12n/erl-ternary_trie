@@ -6,7 +6,7 @@ load_trie(FilePath) ->
     {ok, File} = file:open(FilePath, [read]),
     io:format("Loading words...~n"),
     Trie = fill_trie(File, 1, ternary_trie:new()),
-    io:format("Done.~n"),
+    io:format("Loaded ~p words.~n", [ternary_trie:size(Trie)]),
     file:close(File),
     Trie.
 
