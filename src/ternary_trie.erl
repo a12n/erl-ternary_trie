@@ -26,13 +26,16 @@
 %%% Types
 %%%===================================================================
 
--record(node, { char  :: char(),
+-record(node, { char :: char(),
                 value :: any(),
-                left  :: #node{},
-                mid   :: #node{},
+                left :: #node{},
+                mid :: #node{},
                 right :: #node{} }).
 
--opaque ternary_trie() :: (_Empty :: undefined) | (_Root :: #node{}).
+-record(trie, { size = 0 :: non_neg_integer(),
+                root :: #node{} }).
+
+-opaque ternary_trie() :: #trie{}.
 
 -type t() :: ternary_trie().
 
@@ -56,8 +59,8 @@
 find(_Key = "", _Trie) ->
     error(badarg);
 
-find(Key, Trie) ->
-    case find_node(Key, Trie) of
+find(Key, _Trie = #trie{ root = Root }) ->
+    case find_node(Key, Root) of
         #node{ value = Value } when Value =/= undefined ->
             {ok, Value};
         _Other ->
@@ -70,8 +73,8 @@ find(Key, Trie) ->
 %%--------------------------------------------------------------------
 -spec fold(fold_fun(), any(), ternary_trie()) -> any().
 
-fold(Fun, Acc, Trie) ->
-    fold(Fun, Acc, Trie, _RevPrefix = "").
+fold(Fun, Acc, _Trie = #trie{ root = Root }) ->
+    fold_node(Fun, Acc, Root, _RevPrefix = "").
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -139,8 +142,8 @@ keys(Trie) ->
 %%--------------------------------------------------------------------
 -spec map(map_fun(), ternary_trie()) -> ternary_trie().
 
-map(Fun, Trie) ->
-    map(Fun, Trie, _RevPrefix = "").
+map(Fun, Trie = #trie{ root = Root }) ->
+    Trie#trie{ root = map_node(Fun, Root, _RevPrefix = "") }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -158,7 +161,7 @@ merge(Trie1, Trie2) ->
 -spec new() -> ternary_trie().
 
 new() ->
-    _Empty = undefined.
+    #trie{}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -166,25 +169,9 @@ new() ->
 %%--------------------------------------------------------------------
 -spec put(nonempty_string(), any(), ternary_trie()) -> ternary_trie().
 
-put(_Key = [C], Value, _Trie = undefined) ->
-    #node{ char = C, value = Value };
-
-put(_Key = [C | Other], Value, _Trie = undefined) ->
-    #node{ char = C, mid = put(Other, Value, undefined) };
-
-put(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
-  when C < Char ->
-    Node#node{ left = put(Key, Value, Left) };
-
-put(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
-  when C > Char ->
-    Node#node{ right = put(Key, Value, Right) };
-
-put(_Key = [_C], Value, Node) ->
-    Node#node{ value = Value };
-
-put(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
-    Node#node{ mid = put(Other, Value, Mid) }.
+put(Key, Value, Trie = #trie{ size = Size, root = Root }) ->
+    {N, NewRoot} = put_node(Key, Value, Root),
+    Trie#trie{ size = Size + N, root = NewRoot }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -202,20 +189,8 @@ remove(_Key, Trie) ->
 %%--------------------------------------------------------------------
 -spec size(ternary_trie()) -> non_neg_integer().
 
-size(_Trie = undefined) ->
-    0;
-
-size(_Trie = #node{ value = Value,
-                    left = Left,
-                    mid = Mid,
-                    right = Right }) ->
-    ?MODULE:size(Left) + ?MODULE:size(Mid) + ?MODULE:size(Right) +
-        case Value of
-            undefined ->
-                0;
-            _Other ->
-                1
-        end.
+size(#trie{ size = Size }) ->
+    Size.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -262,8 +237,8 @@ nearest_keys(Key, Distance, Trie) ->
 %%--------------------------------------------------------------------
 -spec match(nonempty_string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
-match(Pattern, Trie) ->
-    match(Pattern, Trie, _RevPrefix = "", _List = []).
+match(Pattern, _Trie = #trie{ root = Root }) ->
+    match_node(Pattern, Root, _RevPrefix = "", _List = []).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -285,8 +260,8 @@ match_keys(Pattern, Trie) ->
 %%--------------------------------------------------------------------
 -spec prefix(string(), ternary_trie()) -> [{nonempty_string(), any()}].
 
-prefix(Prefix, Trie) ->
-    prefix(Prefix, Trie, fun(K, V, List) -> [{K, V} | List] end).
+prefix(Prefix, _Trie = #trie{ root = Root }) ->
+    prefix_node(Prefix, Root, fun(K, V, List) -> [{K, V} | List] end).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -294,8 +269,8 @@ prefix(Prefix, Trie) ->
 %%--------------------------------------------------------------------
 -spec prefix_keys(string(), ternary_trie()) -> [nonempty_string()].
 
-prefix_keys(Prefix, Trie) ->
-    prefix(Prefix, Trie, fun(K, _V, Keys) -> [K | Keys] end).
+prefix_keys(Prefix, _Trie = #trie{ root = Root }) ->
+    prefix_node(Prefix, Root, fun(K, _V, Keys) -> [K | Keys] end).
 
 %%%===================================================================
 %%% Internal functions
@@ -305,32 +280,32 @@ prefix_keys(Prefix, Trie) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec fold(fold_fun(), any(), ternary_trie(), string()) -> any().
+-spec fold_node(fold_fun(), any(), #node{}, string()) -> any().
 
-fold(_Fun, Acc, _Trie = undefined, _RevPrefix) ->
+fold_node(_Fun, Acc, _Node = undefined, _RevPrefix) ->
     Acc;
 
-fold(Fun, Acc, _Node = #node{ char = Char,
-                              value = Value,
-                              left = Left,
-                              mid = Mid,
-                              right = Right }, RevPrefix) ->
+fold_node(Fun, Acc, _Node = #node{ char = Char,
+                                   value = Value,
+                                   left = Left,
+                                   mid = Mid,
+                                   right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
-    RightAcc = fold(Fun, Acc, Right, RevPrefix),
+    RightAcc = fold_node(Fun, Acc, Right, RevPrefix),
     ValueAcc = case Value of
                    undefined ->
                        RightAcc;
                    _Other ->
                        Fun(lists:reverse(RevPrefix1), Value, RightAcc)
                end,
-    MidAcc = fold(Fun, ValueAcc, Mid, RevPrefix1),
-    _LeftAcc = fold(Fun, MidAcc, Left, RevPrefix).
+    MidAcc = fold_node(Fun, ValueAcc, Mid, RevPrefix1),
+    _LeftAcc = fold_node(Fun, MidAcc, Left, RevPrefix).
 
 %%--------------------------------------------------------------------
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec find_node(string(), ternary_trie()) -> #node{} | undefined.
+-spec find_node(string(), #node{}) -> #node{} | undefined.
 
 find_node(Key = [C | _Other], _Node = #node{ char = Char, left = Left })
   when C < Char ->
@@ -354,16 +329,16 @@ find_node(_Key, _Node = undefined) ->
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec map(map_fun(), ternary_trie(), string()) -> ternary_trie().
+-spec map_node(map_fun(), #node{}, string()) -> #node{}.
 
-map(_Fun, Node = undefined, _RevPrefix) ->
+map_node(_Fun, Node = undefined, _RevPrefix) ->
     Node;
 
-map(Fun, Node = #node{ char = Char,
-                       value = Value,
-                       left = Left,
-                       mid = Mid,
-                       right = Right }, RevPrefix) ->
+map_node(Fun, Node = #node{ char = Char,
+                            value = Value,
+                            left = Left,
+                            mid = Mid,
+                            right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
     Node#node{ value = case Value of
                            undefined ->
@@ -371,30 +346,29 @@ map(Fun, Node = #node{ char = Char,
                            _Other ->
                                Fun(lists:reverse(RevPrefix1), Value)
                        end,
-               left = map(Fun, Left, RevPrefix),
-               mid = map(Fun, Mid, RevPrefix1),
-               right = map(Fun, Right, RevPrefix) }.
+               left = map_node(Fun, Left, RevPrefix),
+               mid = map_node(Fun, Mid, RevPrefix1),
+               right = map_node(Fun, Right, RevPrefix) }.
 
 %%--------------------------------------------------------------------
 %% @priv
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec match(string(), ternary_trie(), string(),
-            [{nonempty_string(), any()}]) ->
-                   [{nonempty_string(), any()}].
+-spec match_node(string(), #node{}, string(), [{nonempty_string(), any()}]) ->
+                        [{nonempty_string(), any()}].
 
-match(_Pattern, _Node = undefined, _RevPrefix, List) ->
+match_node(_Pattern, _Node = undefined, _RevPrefix, List) ->
     List;
 
-match(Pattern = [C | Other],
-      #node{ char = Char, value = Value,
-             left = Left, mid = Mid, right = Right },
-      RevPrefix, List) ->
+match_node(Pattern = [C | Other],
+           #node{ char = Char, value = Value,
+                  left = Left, mid = Mid, right = Right },
+           RevPrefix, List) ->
     RevPrefix1 = [Char | RevPrefix],
     List1 =
         if (C > Char) or (C == $.) ->
-                match(Pattern, Right, RevPrefix, List);
+                match_node(Pattern, Right, RevPrefix, List);
            true ->
                 List
         end,
@@ -410,14 +384,14 @@ match(Pattern = [C | Other],
                                 [{Key, Value} | List1]
                         end;
                     _NonEmpty ->
-                        match(Other, Mid, RevPrefix1, List1)
+                        match_node(Other, Mid, RevPrefix1, List1)
                 end;
            true ->
                 List1
         end,
     _List3 =
         if (C < Char) or (C == $.) ->
-                match(Pattern, Left, RevPrefix, List2);
+                match_node(Pattern, Left, RevPrefix, List2);
            true ->
                 List2
         end.
@@ -426,13 +400,13 @@ match(Pattern = [C | Other],
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
--spec prefix(string(), ternary_trie(), fun()) -> [any()].
+-spec prefix_node(string(), #node{}, fun()) -> [any()].
 
-prefix(_Prefix = "", Trie, FoldFun) ->
-    fold(FoldFun, [], Trie, _RevPrefix = "");
+prefix_node(_Prefix = "", Node, FoldFun) ->
+    fold_node(FoldFun, [], Node, _RevPrefix = "");
 
-prefix(Prefix, Trie, FoldFun) ->
-    case find_node(Prefix, Trie) of
+prefix_node(Prefix, Node, FoldFun) ->
+    case find_node(Prefix, Node) of
         #node{ value = Value, mid = Mid } ->
             List0 = case Value of
                         undefined ->
@@ -440,10 +414,40 @@ prefix(Prefix, Trie, FoldFun) ->
                         _Other ->
                             FoldFun(Prefix, Value, [])
                    end,
-            fold(FoldFun, List0, Mid, lists:reverse(Prefix));
+            fold_node(FoldFun, List0, Mid, lists:reverse(Prefix));
         undefined ->
             []
     end.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% @end
+%%--------------------------------------------------------------------
+-spec put_node(nonempty_string(), any(), #node{}) -> {0 | 1, #node{}}.
+
+put_node(_Key = [C], Value, _Node = undefined) ->
+    {1, #node{ char = C, value = Value }};
+
+put_node(_Key = [C | Other], Value, _Node = undefined) ->
+    {N, NewMid} = put_node(Other, Value, undefined),
+    {N, #node{ char = C, mid = NewMid }};
+
+put_node(Key = [C | _Other], Value, Node = #node{ char = Char, left = Left })
+  when C < Char ->
+    {N, NewLeft} = put_node(Key, Value, Left),
+    {N, Node#node{ left = NewLeft }};
+
+put_node(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
+  when C > Char ->
+    {N, NewRight} = put_node(Key, Value, Right),
+    {N, Node#node{ right = NewRight }};
+
+put_node(_Key = [_C], Value, Node) ->
+    {0, Node#node{ value = Value }};
+
+put_node(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
+    {N, NewMid} = put_node(Other, Value, Mid),
+    {N, Node#node{ mid = NewMid }}.
 
 %%%===================================================================
 %%% Tests
