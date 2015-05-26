@@ -21,7 +21,7 @@
 %%%===================================================================
 
 -record(node, { char :: char(),
-                value :: any(),
+                value :: {ok, any()} | undefined,
                 left :: #node{},
                 mid :: #node{},
                 right :: #node{} }).
@@ -55,7 +55,7 @@ find(_Key = "", _Trie) ->
 
 find(Key, _Trie = #trie{ root = Root }) ->
     case find_node(Key, Root) of
-        #node{ value = Value } when Value =/= undefined ->
+        #node{ value = {ok, Value} } ->
             {ok, Value};
         _Other ->
             error
@@ -230,11 +230,11 @@ prefix(_Prefix = "", Trie) ->
 
 prefix(Prefix, _Trie = #trie{ root = Root }) ->
     case find_node(Prefix, Root) of
-        #node{ value = Value, mid = Mid } ->
-            List0 = case Value of
+        #node{ value = ValueTerm, mid = Mid } ->
+            List0 = case ValueTerm of
                         undefined ->
                             [];
-                        _Other ->
+                        {ok, Value} ->
                             [{Prefix, Value}]
                     end,
             lists:reverse(
@@ -258,16 +258,16 @@ fold_node(_Fun, Acc, _Node = undefined, _RevPrefix) ->
     Acc;
 
 fold_node(Fun, Acc, _Node = #node{ char = Char,
-                                   value = Value,
+                                   value = ValueTerm,
                                    left = Left,
                                    mid = Mid,
                                    right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
     LeftAcc = fold_node(Fun, Acc, Left, RevPrefix),
-    ValueAcc = case Value of
+    ValueAcc = case ValueTerm of
                    undefined ->
                        LeftAcc;
-                   _Other ->
+                   {ok, Value} ->
                        Fun(lists:reverse(RevPrefix1), Value, LeftAcc)
                end,
     MidAcc = fold_node(Fun, ValueAcc, Mid, RevPrefix1),
@@ -307,16 +307,16 @@ map_node(_Fun, Node = undefined, _RevPrefix) ->
     Node;
 
 map_node(Fun, Node = #node{ char = Char,
-                            value = Value,
+                            value = ValueTerm,
                             left = Left,
                             mid = Mid,
                             right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
-    Node#node{ value = case Value of
+    Node#node{ value = case ValueTerm of
                            undefined ->
-                               Value;
-                           _Other ->
-                               Fun(lists:reverse(RevPrefix1), Value)
+                               undefined;
+                           {ok, Value} ->
+                               {ok, Fun(lists:reverse(RevPrefix1), Value)}
                        end,
                left = map_node(Fun, Left, RevPrefix),
                mid = map_node(Fun, Mid, RevPrefix1),
@@ -334,7 +334,7 @@ match_node(_Pattern, _Node = undefined, _RevPrefix, List) ->
     List;
 
 match_node(Pattern = [C | Other],
-           #node{ char = Char, value = Value,
+           #node{ char = Char, value = ValueTerm,
                   left = Left, mid = Mid, right = Right },
            RevPrefix, List) ->
     RevPrefix1 = [Char | RevPrefix],
@@ -350,10 +350,10 @@ match_node(Pattern = [C | Other],
             true ->
                 case Other of
                     [] ->
-                        case Value of
+                        case ValueTerm of
                             undefined ->
                                 List1;
-                            _Some ->
+                            {ok, Value} ->
                                 Key = lists:reverse(RevPrefix1),
                                 [{Key, Value} | List1]
                         end;
@@ -378,7 +378,7 @@ match_node(Pattern = [C | Other],
 -spec put_node(nonempty_string(), any(), #node{}) -> {0 | 1, #node{}}.
 
 put_node(_Key = [C], Value, _Node = undefined) ->
-    {1, #node{ char = C, value = Value }};
+    {1, #node{ char = C, value = {ok, Value} }};
 
 put_node(_Key = [C | Other], Value, _Node = undefined) ->
     {N, NewMid} = put_node(Other, Value, undefined),
@@ -395,10 +395,10 @@ put_node(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
     {N, Node#node{ right = NewRight }};
 
 put_node(_Key = [_C], Value, Node = #node{ value = undefined }) ->
-    {1, Node#node{ value = Value }};
+    {1, Node#node{ value = {ok, Value} }};
 
 put_node(_Key = [_C], Value, Node) ->
-    {0, Node#node{ value = Value }};
+    {0, Node#node{ value = {ok, Value} }};
 
 put_node(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
     {N, NewMid} = put_node(Other, Value, Mid),
