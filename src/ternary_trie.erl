@@ -50,16 +50,16 @@
 %%--------------------------------------------------------------------
 -spec find(nonempty_string(), ternary_trie()) -> {ok, any()} | error.
 
-find(_Key = "", _Trie) ->
-    error(badarg);
-
-find(Key, _Trie = #trie{ root = Root }) ->
+find(Key = [_C | _], _Trie = #trie{ root = Root }) ->
     case find_node(Key, Root) of
         #node{ value = {ok, Value} } ->
             {ok, Value};
         _Other ->
             error
-    end.
+    end;
+
+find(_BadKey, _BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -67,8 +67,11 @@ find(Key, _Trie = #trie{ root = Root }) ->
 %%--------------------------------------------------------------------
 -spec fold(fold_fun(), any(), ternary_trie()) -> any().
 
-fold(Fun, Acc, _Trie = #trie{ root = Root }) ->
-    fold_node(Fun, Acc, Root, _RevPrefix = "").
+fold(Fun, Acc, _Trie = #trie{ root = Root }) when is_function(Fun, 3) ->
+    fold_node(Fun, Acc, Root, _RevPrefix = "");
+
+fold(_BadFun, _Acc, _BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -136,8 +139,11 @@ keys(Trie) ->
 %%--------------------------------------------------------------------
 -spec map(map_fun(), ternary_trie()) -> ternary_trie().
 
-map(Fun, Trie = #trie{ root = Root }) ->
-    Trie#trie{ root = map_node(Fun, Root, _RevPrefix = "") }.
+map(Fun, Trie = #trie{ root = Root }) when is_function(Fun, 2) ->
+    Trie#trie{ root = map_node(Fun, Root, _RevPrefix = "") };
+
+map(_BadFun, _BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -145,8 +151,11 @@ map(Fun, Trie = #trie{ root = Root }) ->
 %%--------------------------------------------------------------------
 -spec merge(ternary_trie(), ternary_trie()) -> ternary_trie().
 
-merge(Trie1, Trie2) ->
-    fold(fun(K, V, T) -> put(K, V, T) end, Trie1, Trie2).
+merge(Trie1 = #trie{}, Trie2 = #trie{}) ->
+    fold(fun(K, V, T) -> put(K, V, T) end, Trie1, Trie2);
+
+merge(_BadTrie1, _BadTrie2) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -184,7 +193,10 @@ remove(_Key, Trie) ->
 -spec size(ternary_trie()) -> non_neg_integer().
 
 size(#trie{ size = Size }) ->
-    Size.
+    Size;
+
+size(_BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
