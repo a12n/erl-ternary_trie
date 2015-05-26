@@ -90,7 +90,7 @@ get(Key, Trie) ->
         {ok, Value} ->
             Value;
         error ->
-            error(badarg)
+            error(bad_key)
     end.
 
 %%--------------------------------------------------------------------
@@ -433,8 +433,8 @@ from_list_1_test_() ->
 
 get_2_test_() ->
     [ ?_assertError(badarg, get("", from_list([{"A", 1}]))),
-      ?_assertError(badarg, get("A", new())),
-      ?_assertError(badarg, get("B", from_list([{"A", 1}]))),
+      ?_assertError(bad_key, get("A", new())),
+      ?_assertError(bad_key, get("B", from_list([{"A", 1}]))),
       ?_assertEqual(12, get("CBL", from_list([{"CBL",12}]))) ].
 
 get_3_test_() ->
