@@ -1,4 +1,4 @@
-.PHONY: all app clean distclean doc shell test
+.PHONY: all clean distclean shell test
 
 ERL ?= erl
 ERL_FLAGS ?= -smp -pa ebin/ -pa deps/*/ebin/
