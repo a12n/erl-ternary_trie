@@ -1,7 +1,7 @@
 .PHONY: all clean distclean shell test
 
 ERL ?= erl
-ERL_FLAGS ?= -smp -pa ebin/ -pa deps/*/ebin/
+ERL_FLAGS ?= -smp -pa ebin/
 REBAR ?= ./rebar
 
 all: $(REBAR)
