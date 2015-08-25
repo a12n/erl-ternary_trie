@@ -21,7 +21,7 @@
 %%%===================================================================
 
 -record(node, { char :: char(),
-                value :: any(),
+                value :: {ok, any()} | undefined,
                 left :: #node{},
                 mid :: #node{},
                 right :: #node{} }).
@@ -50,16 +50,16 @@
 %%--------------------------------------------------------------------
 -spec find(nonempty_string(), ternary_trie()) -> {ok, any()} | error.
 
-find(_Key = "", _Trie) ->
-    error(badarg);
-
-find(Key, _Trie = #trie{ root = Root }) ->
+find(Key = [_C | _], _Trie = #trie{ root = Root }) ->
     case find_node(Key, Root) of
-        #node{ value = Value } when Value =/= undefined ->
+        #node{ value = {ok, Value} } ->
             {ok, Value};
         _Other ->
             error
-    end.
+    end;
+
+find(_BadKey, _BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -67,8 +67,11 @@ find(Key, _Trie = #trie{ root = Root }) ->
 %%--------------------------------------------------------------------
 -spec fold(fold_fun(), any(), ternary_trie()) -> any().
 
-fold(Fun, Acc, _Trie = #trie{ root = Root }) ->
-    fold_node(Fun, Acc, Root, _RevPrefix = "").
+fold(Fun, Acc, _Trie = #trie{ root = Root }) when is_function(Fun, 3) ->
+    fold_node(Fun, Acc, Root, _RevPrefix = "");
+
+fold(_BadFun, _Acc, _BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -90,7 +93,7 @@ get(Key, Trie) ->
         {ok, Value} ->
             Value;
         error ->
-            error(badarg)
+            error(bad_key)
     end.
 
 %%--------------------------------------------------------------------
@@ -136,8 +139,11 @@ keys(Trie) ->
 %%--------------------------------------------------------------------
 -spec map(map_fun(), ternary_trie()) -> ternary_trie().
 
-map(Fun, Trie = #trie{ root = Root }) ->
-    Trie#trie{ root = map_node(Fun, Root, _RevPrefix = "") }.
+map(Fun, Trie = #trie{ root = Root }) when is_function(Fun, 2) ->
+    Trie#trie{ root = map_node(Fun, Root, _RevPrefix = "") };
+
+map(_BadFun, _BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -145,8 +151,11 @@ map(Fun, Trie = #trie{ root = Root }) ->
 %%--------------------------------------------------------------------
 -spec merge(ternary_trie(), ternary_trie()) -> ternary_trie().
 
-merge(Trie1, Trie2) ->
-    fold(fun(K, V, T) -> put(K, V, T) end, Trie1, Trie2).
+merge(Trie1 = #trie{}, Trie2 = #trie{}) ->
+    fold(fun(K, V, T) -> put(K, V, T) end, Trie1, Trie2);
+
+merge(_BadTrie1, _BadTrie2) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -184,7 +193,10 @@ remove(_Key, Trie) ->
 -spec size(ternary_trie()) -> non_neg_integer().
 
 size(#trie{ size = Size }) ->
-    Size.
+    Size;
+
+size(_BadTrie) ->
+    error(badarg).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -230,11 +242,11 @@ prefix(_Prefix = "", Trie) ->
 
 prefix(Prefix, _Trie = #trie{ root = Root }) ->
     case find_node(Prefix, Root) of
-        #node{ value = Value, mid = Mid } ->
-            List0 = case Value of
+        #node{ value = ValueTerm, mid = Mid } ->
+            List0 = case ValueTerm of
                         undefined ->
                             [];
-                        _Other ->
+                        {ok, Value} ->
                             [{Prefix, Value}]
                     end,
             lists:reverse(
@@ -258,16 +270,16 @@ fold_node(_Fun, Acc, _Node = undefined, _RevPrefix) ->
     Acc;
 
 fold_node(Fun, Acc, _Node = #node{ char = Char,
-                                   value = Value,
+                                   value = ValueTerm,
                                    left = Left,
                                    mid = Mid,
                                    right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
     LeftAcc = fold_node(Fun, Acc, Left, RevPrefix),
-    ValueAcc = case Value of
+    ValueAcc = case ValueTerm of
                    undefined ->
                        LeftAcc;
-                   _Other ->
+                   {ok, Value} ->
                        Fun(lists:reverse(RevPrefix1), Value, LeftAcc)
                end,
     MidAcc = fold_node(Fun, ValueAcc, Mid, RevPrefix1),
@@ -307,16 +319,16 @@ map_node(_Fun, Node = undefined, _RevPrefix) ->
     Node;
 
 map_node(Fun, Node = #node{ char = Char,
-                            value = Value,
+                            value = ValueTerm,
                             left = Left,
                             mid = Mid,
                             right = Right }, RevPrefix) ->
     RevPrefix1 = [Char | RevPrefix],
-    Node#node{ value = case Value of
+    Node#node{ value = case ValueTerm of
                            undefined ->
-                               Value;
-                           _Other ->
-                               Fun(lists:reverse(RevPrefix1), Value)
+                               undefined;
+                           {ok, Value} ->
+                               {ok, Fun(lists:reverse(RevPrefix1), Value)}
                        end,
                left = map_node(Fun, Left, RevPrefix),
                mid = map_node(Fun, Mid, RevPrefix1),
@@ -334,7 +346,7 @@ match_node(_Pattern, _Node = undefined, _RevPrefix, List) ->
     List;
 
 match_node(Pattern = [C | Other],
-           #node{ char = Char, value = Value,
+           #node{ char = Char, value = ValueTerm,
                   left = Left, mid = Mid, right = Right },
            RevPrefix, List) ->
     RevPrefix1 = [Char | RevPrefix],
@@ -350,10 +362,10 @@ match_node(Pattern = [C | Other],
             true ->
                 case Other of
                     [] ->
-                        case Value of
+                        case ValueTerm of
                             undefined ->
                                 List1;
-                            _Some ->
+                            {ok, Value} ->
                                 Key = lists:reverse(RevPrefix1),
                                 [{Key, Value} | List1]
                         end;
@@ -378,7 +390,7 @@ match_node(Pattern = [C | Other],
 -spec put_node(nonempty_string(), any(), #node{}) -> {0 | 1, #node{}}.
 
 put_node(_Key = [C], Value, _Node = undefined) ->
-    {1, #node{ char = C, value = Value }};
+    {1, #node{ char = C, value = {ok, Value} }};
 
 put_node(_Key = [C | Other], Value, _Node = undefined) ->
     {N, NewMid} = put_node(Other, Value, undefined),
@@ -395,10 +407,10 @@ put_node(Key = [C | _Other], Value, Node = #node{ char = Char, right = Right })
     {N, Node#node{ right = NewRight }};
 
 put_node(_Key = [_C], Value, Node = #node{ value = undefined }) ->
-    {1, Node#node{ value = Value }};
+    {1, Node#node{ value = {ok, Value} }};
 
 put_node(_Key = [_C], Value, Node) ->
-    {0, Node#node{ value = Value }};
+    {0, Node#node{ value = {ok, Value} }};
 
 put_node(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
     {N, NewMid} = put_node(Other, Value, Mid),
@@ -414,42 +426,55 @@ put_node(_Key = [_C | Other], Value, Node = #node{ mid = Mid }) ->
 
 find_2_test_() ->
     [ ?_assertError(badarg, find("", new())),
+      ?_assertError(badarg, find("A", not_trie)),
       ?_assertEqual(error, find("A", new())),
-      ?_assertEqual({ok, 12}, find("A", from_list([{"A", 12}]))) ].
+      ?_assertEqual({ok, 12}, find("A", from_list([{"A", 12}])))
+    ].
 
 fold_3_test_() ->
     [ ?_assertEqual(0, fold(fun(_K, V, A) -> V + A end, 0, new())),
       ?_assertEqual(6, fold(fun(_K, V, A) -> V + A end, 0,
                             from_list([{"A", 1}, {"BC", 2}, {"ZYX", 3}]))),
       ?_assertEqual(true, fold(fun(_K, V, A) -> (V and A) end, true,
-                               from_list([{"Z", true}, {"GHC", true}, {"YUA", true}]))) ].
+                               from_list([{"Z", true}, {"GHC", true}, {"YUA", true}]))),
+      ?_assertError(badarg, fold(fun(_K, _V, A) -> A end, 0, not_trie))
+    ].
 
 from_list_1_test_() ->
     List = [{"HKM", 12}, {"LM", 10}, {"OPQ", 19}],
     [ ?_assertEqual(List, to_list(from_list(List))),
       ?_assertEqual([], to_list(from_list([]))),
       ?_assertEqual([{"A", 1}, {"CB", 2}, {"ZHK", 3}],
-                    to_list(from_list([{"ZHK", 3}, {"CB", 2}, {"A", 1}]))) ].
+                    to_list(from_list([{"ZHK", 3}, {"CB", 2}, {"A", 1}])))
+    ].
 
 get_2_test_() ->
     [ ?_assertError(badarg, get("", from_list([{"A", 1}]))),
-      ?_assertError(badarg, get("A", new())),
-      ?_assertError(badarg, get("B", from_list([{"A", 1}]))),
-      ?_assertEqual(12, get("CBL", from_list([{"CBL",12}]))) ].
+      ?_assertError(bad_key, get("A", new())),
+      ?_assertError(bad_key, get("B", from_list([{"A", 1}]))),
+      ?_assertEqual(12, get("CBL", from_list([{"CBL",12}]))),
+      ?_assertError(badarg, get("A", not_trie))
+    ].
 
 get_3_test_() ->
     [ ?_assertError(badarg, get("", from_list([{"A", 1}]), 12)),
       ?_assertEqual(12, get("B", from_list([{"A", 1}]), 12)),
-      ?_assertEqual(1, get("A", from_list([{"A", 1}]), 12)) ].
+      ?_assertEqual(1, get("A", from_list([{"A", 1}]), 12)),
+      ?_assertError(badarg, get("A", not_trie, undefined))
+    ].
 
 is_key_2_test_() ->
     [ ?_assert(is_key("A", from_list([{"A", 1}, {"AA", 2}]))),
       ?_assertError(badarg, is_key("", new())),
-      ?_assertNot(is_key("A", new())) ].
+      ?_assertNot(is_key("A", new())),
+      ?_assertError(badarg, is_key("A", not_trie))
+    ].
 
 keys_1_test_() ->
     [ ?_assertEqual(["ABC", "GHC", "KFC"], keys(from_list([{"GHC", 12}, {"KFC", 33}, {"ABC", 99}]))),
-      ?_assertEqual([], keys(from_list([]))) ].
+      ?_assertEqual([], keys(from_list([]))),
+      ?_assertError(badarg, keys(not_trie))
+    ].
 
 map_2_test_() ->
     [ ?_assertEqual([], to_list(map(fun erlang:'++'/2, from_list([])))),
@@ -458,7 +483,9 @@ map_2_test_() ->
                       {"AAA", "AAABBB"} ],
                     to_list(map(fun erlang:'++'/2, from_list([ {"AAA", "BBB"},
                                                                {"AA", "BB"},
-                                                               {"A", "B"} ])))) ].
+                                                               {"A", "B"} ])))),
+      ?_assertError(badarg, map(fun(_K, V) -> V end, not_trie))
+    ].
 
 merge_2_test_() ->
     [ ?_assertEqual([ {"A", 1}, {"AA", 2}, {"B", 4}, {"BB", 3} ],
@@ -466,12 +493,18 @@ merge_2_test_() ->
                                               {"B", 444} ]),
                                   from_list([ {"AA", 2},
                                               {"BB", 3},
-                                              {"B", 4} ])))) ].
+                                              {"B", 4} ])))),
+      ?_assertError(badarg, merge(new(), not_trie)),
+      ?_assertError(badarg, merge(not_trie, new())),
+      ?_assertError(badarg, merge(not_trie, not_trie))
+    ].
 
 size_1_test_() ->
     [ ?_assertEqual(0, ?MODULE:size(new())),
       ?_assertEqual(1, ?MODULE:size(from_list([{"A", 1}]))),
       ?_assertEqual(1, ?MODULE:size(from_list([{"A", 1}, {"A", 2}]))),
-      ?_assertEqual(2, ?MODULE:size(from_list([{"A", 1}, {"AA", 2}]))) ].
+      ?_assertEqual(2, ?MODULE:size(from_list([{"A", 1}, {"AA", 2}]))),
+      ?_assertError(badarg, ?MODULE:size(not_trie))
+    ].
 
 -endif.
